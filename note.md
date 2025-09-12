@@ -3,7 +3,7 @@
 15. check lỗi phân quyền bên phía admin -> oke
 15. check lỗi phân quyền bên phía customer
 16. quyên mật khẩu bên admin -> oke
-2. chỉnh lại các trường tên cột: /src/pages/users/components/user-table.tsx
+2. chỉnh lại các trường tên cột: /src/pages/users/components/user-table.tsx -> oke
 3. làm lại phần edit user: Chỉnh sửa người dùng
 4. chức năng add: chỉnh lại admin/nhân viên không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null
 5. nxb email là required, còn lại là optional

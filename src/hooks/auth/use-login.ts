@@ -15,7 +15,6 @@ export const useLogin = (options: UseLoginOptions = {}) => {
 	const mutation = useMutation({
 		mutationFn: (data: LoginRequest) => AuthAPI.login(data),
 		onSuccess: (data) => {
-			console.log('🚀 ~ useLogin ~ data:', data);
 			// Save authentication data to localStorage
 			AuthAPI.saveAuthData(data);
 

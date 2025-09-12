@@ -59,8 +59,8 @@ export const UserTable = memo<UserTableProps>(
 							<TableHead>Tên người dùng</TableHead>
 							<TableHead>Email</TableHead>
 							<TableHead>Quyền người dùng</TableHead>
-							<TableHead>Trạng thái</TableHead>
 							{isReaderView && <TableHead>Loại độc giả</TableHead>}
+							<TableHead>Trạng thái</TableHead>
 							{isReaderView && <TableHead>Ngày cấp thẻ</TableHead>}
 							{isReaderView && <TableHead>Ngày hết hạn</TableHead>}
 							<TableHead className="text-right">Hành động</TableHead>
@@ -90,8 +90,8 @@ export const UserTable = memo<UserTableProps>(
 						<TableHead>Tên người dùng</TableHead>
 						<TableHead>Email</TableHead>
 						<TableHead>Quyền người dùng</TableHead>
-						<TableHead>Trạng thái</TableHead>
 						{isReaderView && <TableHead>Loại độc giả</TableHead>}
+						<TableHead>Trạng thái</TableHead>
 						{isReaderView && <TableHead>Ngày cấp thẻ</TableHead>}
 						{isReaderView && <TableHead>Ngày hết hạn</TableHead>}
 						<TableHead className="text-right">Hành động</TableHead>
@@ -124,6 +124,11 @@ export const UserTable = memo<UserTableProps>(
 										{isReader ? 'Độc giả' : 'Quản trị viên'}
 									</Badge>
 								</TableCell>
+								{isReaderView && (
+									<TableCell>
+										{getReaderTypeDisplayName(reader?.readerType)}
+									</TableCell>
+								)}
 								<TableCell>
 									<Badge
 										variant={getStatusBadgeVariant(
@@ -147,9 +152,6 @@ export const UserTable = memo<UserTableProps>(
 								</TableCell>
 								{isReaderView && (
 									<>
-										<TableCell>
-											{getReaderTypeDisplayName(reader?.readerType)}
-										</TableCell>
 										<TableCell>
 											{formatDate(reader?.cardIssueDate || '')}
 										</TableCell>

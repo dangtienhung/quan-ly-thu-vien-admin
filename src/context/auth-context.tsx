@@ -25,6 +25,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const queryClient = useQueryClient();
 	const [user, setUser] = useState<User | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [hasJustLoggedIn, setHasJustLoggedIn] = useState(false);
 	const navigate = useNavigate();
 
 	const isAuthenticated = !!localStorage.getItem('accessToken');
@@ -46,23 +47,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	});
 
 	useEffect(() => {
-		if (currentUser && currentUser.role === 'admin') {
-			setUser(currentUser);
-
-			// Show success notification
-			toast.success('Login successful!');
-		} else {
+		// Only check role if we have user data and user is not admin
+		if (currentUser && currentUser.role !== 'admin') {
+			console.log('User is not admin, redirecting to login');
 			navigate('/login');
 			toast.error('Bạn không có quyền truy cập vào trang quản trị');
 			localStorage.removeItem('accessToken');
+		} else if (currentUser && currentUser.role === 'admin') {
+			setUser(currentUser);
+			// Only show success toast on login, not on page refresh
+			if (hasJustLoggedIn) {
+				toast.success('Login successful!');
+				setHasJustLoggedIn(false);
+			}
 		}
-	}, [currentUser, navigate]);
+	}, [currentUser, navigate, hasJustLoggedIn]);
 
 	const login = async (credentials: LoginRequest): Promise<void> => {
 		try {
 			setIsLoading(true);
 			// Use the login mutation from the hook
 			await loginMutation.loginAsync(credentials);
+			// Set flag to show success toast
+			setHasJustLoggedIn(true);
 		} catch (error) {
 			console.error('Login failed:', error);
 			throw error;
@@ -74,6 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const logout = () => {
 		// Clear user state
 		setUser(null);
+		setHasJustLoggedIn(false);
 
 		// Clear all data from localStorage
 		localStorage.clear();
