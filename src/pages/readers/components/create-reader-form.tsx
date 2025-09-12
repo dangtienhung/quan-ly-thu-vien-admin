@@ -112,7 +112,7 @@ const CreateReaderForm = ({
 			// Điền họ tên từ user được chọn
 			form.setValue('fullName', selectedUser.username);
 
-			// Tạo số thẻ từ mã sinh viên
+			// Tạo số thẻ từ mã Học Sinh
 			const cardNumber = `${selectedUser.userCode}`;
 			form.setValue('cardNumber', cardNumber);
 
@@ -130,7 +130,7 @@ const CreateReaderForm = ({
 				// Không set giá trị mặc định
 			}
 
-			// Tính ngày hết hạn thẻ (1 năm sau ngày cấp thẻ)
+			// Tính ngày hết hạn thẻ (1 năm sau Ngày hoạt động)
 			const issueDate = new Date();
 			const expiryDate = new Date(issueDate);
 			expiryDate.setFullYear(expiryDate.getFullYear() + 1);
@@ -410,7 +410,7 @@ const CreateReaderForm = ({
 					name="cardIssueDate"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Ngày cấp thẻ</FormLabel>
+							<FormLabel>Ngày hoạt động</FormLabel>
 							<FormControl>
 								<Input type="date" {...field} />
 							</FormControl>

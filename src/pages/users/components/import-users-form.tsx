@@ -2,20 +2,29 @@ import * as XLSX from 'xlsx';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
+import {
 	IconAlertTriangle,
 	IconCheck,
+	IconDownload,
 	IconFileSpreadsheet,
 	IconUpload,
 	IconX,
 } from '@tabler/icons-react';
 
+import { UsersAPI } from '@/apis/users';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UsersAPI } from '@/apis/users';
-import { toast } from 'sonner';
-import { useState } from 'react';
 import { useUploadExcel } from '@/hooks/users/useUploadExcel';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ImportUsersFormProps {
 	onSubmit: (data: any[]) => void;
@@ -32,10 +41,41 @@ const ImportUsersForm: React.FC<ImportUsersFormProps> = ({
 	const [searchTerm, setSearchTerm] = useState<string>('');
 	const [previewData, setPreviewData] = useState<any[]>([]);
 	const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
+	const [showDownloadDialog, setShowDownloadDialog] = useState<boolean>(false);
 
 	// Sử dụng hook upload Excel
 	const { uploadExcel, isUploading, uploadResult, resetUpload } =
 		useUploadExcel();
+
+	// Hàm hiển thị dialog confirm download
+	const handleShowDownloadDialog = () => {
+		setShowDownloadDialog(true);
+	};
+
+	// Hàm download template Excel
+	const handleDownloadTemplate = () => {
+		try {
+			// Tạo link download trỏ đến file template trong public folder
+			const link = document.createElement('a');
+			link.href = '/NguoiDung.xlsx';
+			link.download = 'NguoiDung_Template.xlsx';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+
+			toast.success('Đã tải xuống file template thành công!');
+			setShowDownloadDialog(false);
+		} catch (error) {
+			console.error('Error downloading template:', error);
+			toast.error('Có lỗi xảy ra khi tải xuống file template');
+			setShowDownloadDialog(false);
+		}
+	};
+
+	// Hàm hủy download
+	const handleCancelDownload = () => {
+		setShowDownloadDialog(false);
+	};
 
 	// Hàm đọc file Excel và preview
 	const readExcelFile = (file: File) => {
@@ -244,7 +284,10 @@ const ImportUsersForm: React.FC<ImportUsersFormProps> = ({
 						<div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
 							<IconFileSpreadsheet className="mx-auto h-12 w-12 text-gray-400" />
 							<div className="mt-4">
-								<Label htmlFor="file-upload" className="cursor-pointer">
+								<Label
+									htmlFor="file-upload"
+									className="cursor-pointer flex items-center justify-center"
+								>
 									<Button variant="outline" asChild>
 										<span>
 											<IconUpload className="mr-2 h-4 w-4" />
@@ -264,9 +307,20 @@ const ImportUsersForm: React.FC<ImportUsersFormProps> = ({
 								Hỗ trợ file .xlsx và .xls
 							</p>
 							<div className="mt-3 p-3 bg-blue-50 rounded-lg text-left">
-								<p className="text-sm font-medium text-blue-800 mb-2">
-									Format Excel yêu cầu:
-								</p>
+								<div className="flex items-center justify-between mb-2">
+									<p className="text-sm font-medium text-blue-800">
+										Format Excel yêu cầu:
+									</p>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleShowDownloadDialog}
+										className="text-blue-600 border-blue-300 hover:bg-blue-100"
+									>
+										<IconDownload className="mr-1 h-3 w-3" />
+										Tải mẫu
+									</Button>
+								</div>
 								<div className="text-xs text-blue-700 space-y-1">
 									<p>
 										<strong>Bắt buộc:</strong> useCode, username, email,
@@ -319,33 +373,54 @@ const ImportUsersForm: React.FC<ImportUsersFormProps> = ({
 
 							{/* Upload Button */}
 							{!uploadResult && (
-								<Button
-									onClick={handleUploadFile}
-									disabled={isUploading}
-									className="w-full"
-								>
-									{isUploading ? (
-										<>
-											<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-											Đang upload...
-										</>
-									) : (
-										<>
-											<IconUpload className="mr-2 h-4 w-4" />
-											Upload và kiểm tra file Excel
-										</>
-									)}
-								</Button>
+								<div className="flex gap-2">
+									<Button
+										onClick={handleUploadFile}
+										disabled={isUploading}
+										className="flex-1"
+									>
+										{isUploading ? (
+											<>
+												<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+												Đang upload...
+											</>
+										) : (
+											<>
+												<IconUpload className="mr-2 h-4 w-4" />
+												Upload và kiểm tra file Excel
+											</>
+										)}
+									</Button>
+									<Button
+										variant="outline"
+										onClick={handleShowDownloadDialog}
+										className="text-blue-600 border-blue-300 hover:bg-blue-50"
+									>
+										<IconDownload className="mr-2 h-4 w-4" />
+										Tải mẫu
+									</Button>
+								</div>
 							)}
 
 							{/* Upload Result Summary */}
 							{uploadResult && (
 								<div className="p-4 border rounded-lg bg-gray-50">
-									<div className="flex items-center space-x-2 mb-3">
-										<IconCheck className="h-5 w-5 text-green-500" />
-										<span className="font-medium text-green-700">
-											Kết quả kiểm tra file
-										</span>
+									<div className="flex items-center justify-between mb-3">
+										<div className="flex items-center space-x-2">
+											<IconCheck className="h-5 w-5 text-green-500" />
+											<span className="font-medium text-green-700">
+												Kết quả kiểm tra file
+											</span>
+										</div>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={handleShowDownloadDialog}
+											className="text-blue-600 border-blue-300 hover:bg-blue-50"
+										>
+											<IconDownload className="mr-1 h-3 w-3" />
+											Tải mẫu mới
+										</Button>
 									</div>
 
 									<div className="grid grid-cols-2 gap-4 text-sm">
@@ -521,6 +596,42 @@ const ImportUsersForm: React.FC<ImportUsersFormProps> = ({
 						: 'Import người dùng'}
 				</Button>
 			</div>
+
+			{/* Download Template Confirm Dialog */}
+			<Dialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<IconDownload className="h-5 w-5 text-blue-600" />
+							Tải xuống file template
+						</DialogTitle>
+						<DialogDescription className="text-left">
+							Bạn có chắc chắn muốn tải xuống file template Excel để import
+							người dùng?
+							<br />
+							<br />
+							<strong>File template bao gồm:</strong>
+							<ul className="list-disc list-inside mt-2 text-sm space-y-1">
+								<li>Định dạng cột theo yêu cầu hệ thống</li>
+								<li>Dữ liệu mẫu để tham khảo</li>
+								<li>Hướng dẫn điền dữ liệu</li>
+							</ul>
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+						<Button variant="outline" onClick={handleCancelDownload}>
+							Hủy
+						</Button>
+						<Button
+							onClick={handleDownloadTemplate}
+							className="bg-blue-600 hover:bg-blue-700"
+						>
+							<IconDownload className="mr-2 h-4 w-4" />
+							Tải xuống
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };

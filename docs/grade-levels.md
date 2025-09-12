@@ -50,7 +50,7 @@ Request Body:
 ```json
 {
   "name": "Lớp 1",
-  "description": "Dành cho học sinh lớp 1",
+  "description": "Dành cho Học Sinh lớp 1",
   "order": 1
 }
 ```
@@ -130,7 +130,7 @@ Danh sách (200):
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "Lớp 1",
-      "description": "Dành cho học sinh lớp 1",
+      "description": "Dành cho Học Sinh lớp 1",
       "order": 1,
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -153,7 +153,7 @@ Chi tiết (200):
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Lớp 1",
-  "description": "Dành cho học sinh lớp 1",
+  "description": "Dành cho Học Sinh lớp 1",
   "order": 1,
   "createdAt": "2024-01-01T00:00:00.000Z",
   "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -196,7 +196,7 @@ CREATE INDEX grade_levels_order_idx ON grade_levels(order);
 curl -X POST http://localhost:8000/grade-levels \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Lớp 1","description":"Dành cho học sinh lớp 1","order":1}'
+  -d '{"name":"Lớp 1","description":"Dành cho Học Sinh lớp 1","order":1}'
 
 # Danh sách phân trang
 curl "http://localhost:8000/grade-levels?page=1&limit=10" \

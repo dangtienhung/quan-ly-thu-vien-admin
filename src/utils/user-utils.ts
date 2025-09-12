@@ -66,7 +66,7 @@ export const getReaderTypeDisplayName = (readerType?: { typeName: string }) => {
 	if (!readerType) return 'N/A';
 	switch (readerType.typeName) {
 		case 'student':
-			return 'Sinh viên';
+			return 'Học Sinh';
 		case 'teacher':
 			return 'Giáo viên';
 		case 'staff':

@@ -455,7 +455,7 @@ const ReadersPage = () => {
 					<TableHead>Số thẻ</TableHead>
 					<TableHead>Thông tin cá nhân</TableHead>
 					<TableHead>Loại độc giả</TableHead>
-					<TableHead>Ngày cấp thẻ</TableHead>
+					<TableHead>Ngày hoạt động</TableHead>
 					<TableHead>Ngày hết hạn</TableHead>
 					<TableHead>Trạng thái</TableHead>
 					<TableHead className="text-right">Hành động</TableHead>

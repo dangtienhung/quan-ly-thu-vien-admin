@@ -177,7 +177,7 @@ const ReaderTypesPage = () => {
 	const getTypeNameLabel = (typeName: string) => {
 		switch (typeName) {
 			case 'student':
-				return 'Học sinh';
+				return 'Học Sinh';
 			case 'teacher':
 				return 'Giáo viên';
 			case 'staff':

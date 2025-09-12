@@ -13,11 +13,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import type { CreateReaderTypeRequest } from '@/types/reader-types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import type { CreateReaderTypeRequest } from '@/types/reader-types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -83,7 +83,7 @@ const CreateReaderTypeForm = ({
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="student">Sinh viên</SelectItem>
+									<SelectItem value="student">Học Sinh</SelectItem>
 									<SelectItem value="teacher">Giảng viên</SelectItem>
 									<SelectItem value="staff">Nhân viên</SelectItem>
 								</SelectContent>

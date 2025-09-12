@@ -66,7 +66,7 @@ const EditReaderTypeForm = ({
 	const getTypeNameLabel = (typeName: string) => {
 		switch (typeName) {
 			case 'student':
-				return 'Sinh viên';
+				return 'Học Sinh';
 			case 'teacher':
 				return 'Giảng viên';
 			case 'staff':

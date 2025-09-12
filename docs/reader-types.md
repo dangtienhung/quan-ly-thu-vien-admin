@@ -2,7 +2,7 @@
 
 ## 📋 Tổng quan
 
-Module Cài đặt quyền mượn sách cho phép admin thiết lập và quản lý các loại độc giả khác nhau (sinh viên, giảng viên, nhân viên) với các quyền và giới hạn riêng.
+Module Cài đặt quyền mượn sách cho phép admin thiết lập và quản lý các loại độc giả khác nhau (Học Sinh, giảng viên, nhân viên) với các quyền và giới hạn riêng.
 
 > ⚠️ **Lưu ý quan trọng**: Tất cả các API trong module này yêu cầu:
 >
@@ -47,7 +47,7 @@ POST /api/reader-types
 	"typeName": "student",
 	"maxBorrowLimit": 5,
 	"borrowDurationDays": 14,
-	"description": "Sinh viên đại học",
+	"description": "Học Sinh đại học",
 	"lateReturnFinePerDay": 5000,
 	"createdAt": "2024-01-01T00:00:00.000Z",
 	"updatedAt": "2024-01-01T00:00:00.000Z"
@@ -77,7 +77,7 @@ GET /api/reader-types
 			"typeName": "student",
 			"maxBorrowLimit": 5,
 			"borrowDurationDays": 14,
-			"description": "Sinh viên đại học",
+			"description": "Học Sinh đại học",
 			"lateReturnFinePerDay": 5000,
 			"createdAt": "2024-01-01T00:00:00.000Z",
 			"updatedAt": "2024-01-01T00:00:00.000Z"
@@ -110,7 +110,7 @@ GET /api/reader-types/:id
 	"typeName": "student",
 	"maxBorrowLimit": 5,
 	"borrowDurationDays": 14,
-	"description": "Sinh viên đại học",
+	"description": "Học Sinh đại học",
 	"lateReturnFinePerDay": 5000,
 	"createdAt": "2024-01-01T00:00:00.000Z",
 	"updatedAt": "2024-01-01T00:00:00.000Z"
@@ -143,7 +143,7 @@ PATCH /api/reader-types/:id
 	"typeName": "student",
 	"maxBorrowLimit": 7,
 	"borrowDurationDays": 21,
-	"description": "Sinh viên đại học",
+	"description": "Học Sinh đại học",
 	"lateReturnFinePerDay": 7000,
 	"updatedAt": "2024-01-01T00:00:00.000Z"
 }
@@ -301,7 +301,7 @@ const response = await axios.post(
 		typeName: 'student',
 		maxBorrowLimit: 5,
 		borrowDurationDays: 14,
-		description: 'Sinh viên đại học',
+		description: 'Học Sinh đại học',
 		lateReturnFinePerDay: 5000,
 	},
 	{

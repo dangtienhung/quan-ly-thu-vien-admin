@@ -42,6 +42,11 @@ export const sidebarData: SidebarData = {
 					url: '/users',
 					icon: User,
 				},
+				{
+					title: 'Cài đặt quyền mượn sách',
+					icon: Users,
+					url: '/reader-types',
+				},
 			],
 		},
 		{
@@ -67,11 +72,7 @@ export const sidebarData: SidebarData = {
 					icon: MapPin,
 					url: '/locations',
 				},
-				{
-					title: 'Cài đặt quyền mượn sách',
-					icon: Users,
-					url: '/reader-types',
-				},
+
 				{
 					title: 'Quản lý độc giả',
 					icon: Users2,

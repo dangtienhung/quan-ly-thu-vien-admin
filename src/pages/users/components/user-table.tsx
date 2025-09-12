@@ -1,4 +1,3 @@
-import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
 	Table,
 	TableBody,
@@ -13,6 +12,7 @@ import {
 	getRoleBadgeVariant,
 	getStatusBadgeVariant,
 } from '@/utils/user-utils';
+import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,10 @@ interface UserTableProps {
 	}) => void;
 	isReaderView?: boolean;
 }
+
+/*
+note: người dùng/ loại đọc giả/ trạng thái/ ngày hoạt động/ ngày hết hạn
+*/
 
 export const UserTable = memo<UserTableProps>(
 	({ users, searchValue, onEditUser, onDeleteUser, isReaderView = false }) => {

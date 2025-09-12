@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import type { CreateUserRequest, UserRole } from '@/types/user.type';
 import {
 	Form,
 	FormControl,
@@ -16,16 +15,17 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import type { CreateUserRequest, UserRole } from '@/types/user.type';
 
+import { UsersAPI } from '@/apis/users';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { UsersAPI } from '@/apis/users';
-import { toast } from 'sonner';
-import { useForm } from 'react-hook-form';
-import { useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
 
 const createUserSchema = z.object({
 	userCode: z.string().min(1, 'Mã người dùng là bắt buộc'),
@@ -42,7 +42,7 @@ const createUserSchema = z.object({
 	phone: z.string().min(1, 'Số điện thoại là bắt buộc'),
 	readerType: z.enum(['student', 'teacher', 'staff'] as const),
 	cardNumber: z.string().min(1, 'Số thẻ là bắt buộc'),
-	cardIssueDate: z.string().min(1, 'Ngày cấp thẻ là bắt buộc'),
+	cardIssueDate: z.string().min(1, 'Ngày hoạt động là bắt buộc'),
 	cardExpiryDate: z.string().min(1, 'Ngày hết hạn thẻ là bắt buộc'),
 });
 
@@ -412,7 +412,7 @@ const CreateUserForm = ({
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value="student">Sinh viên</SelectItem>
+													<SelectItem value="student">Học Sinh</SelectItem>
 													<SelectItem value="teacher">Giáo viên</SelectItem>
 													<SelectItem value="staff">Nhân viên</SelectItem>
 												</SelectContent>
@@ -427,7 +427,7 @@ const CreateUserForm = ({
 									name="cardIssueDate"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Ngày cấp thẻ</FormLabel>
+											<FormLabel>Ngày hoạt động</FormLabel>
 											<FormControl>
 												<Input type="date" {...field} />
 											</FormControl>
