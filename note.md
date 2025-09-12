@@ -1,7 +1,8 @@
 1. import excel bổ sung biểu mẫu (template cho người dùng tải về) -> oke
 14. bổ sung thêm chức năng đổi mật khẩu -> oke
-15. check lỗi phân quyền
-16. quyên mật khẩu bên admin
+15. check lỗi phân quyền bên phía admin -> oke
+15. check lỗi phân quyền bên phía customer
+16. quyên mật khẩu bên admin -> oke
 2. chỉnh lại các trường tên cột: /src/pages/users/components/user-table.tsx
 3. làm lại phần edit user: Chỉnh sửa người dùng
 4. chức năng add: chỉnh lại admin/nhân viên không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null

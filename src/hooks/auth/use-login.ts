@@ -19,9 +19,6 @@ export const useLogin = (options: UseLoginOptions = {}) => {
 			// Save authentication data to localStorage
 			AuthAPI.saveAuthData(data);
 
-			// Show success notification
-			toast.success('Login successful!');
-
 			// Call custom onSuccess callback if provided
 			options.onSuccess?.();
 

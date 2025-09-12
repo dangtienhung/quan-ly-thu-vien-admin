@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UsersAPI } from '@/apis/users';
 import { useLogin } from '@/hooks';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface AuthContextType {
 	user: User | null;
@@ -45,10 +46,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	});
 
 	useEffect(() => {
-		if (currentUser) {
+		if (currentUser && currentUser.role === 'admin') {
 			setUser(currentUser);
+
+			// Show success notification
+			toast.success('Login successful!');
+		} else {
+			navigate('/login');
+			toast.error('Bạn không có quyền truy cập vào trang quản trị');
+			localStorage.removeItem('accessToken');
 		}
-	}, [currentUser]);
+	}, [currentUser, navigate]);
 
 	const login = async (credentials: LoginRequest): Promise<void> => {
 		try {
