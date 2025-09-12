@@ -1,4 +1,6 @@
+export { useForgotPassword } from './auth/use-forgot-password';
 export { useLogin } from './auth/use-login';
+export { useResetPassword } from './auth/use-reset-password';
 export * from './authors';
 export * from './book-categories';
 export * from './book-grade-levels';

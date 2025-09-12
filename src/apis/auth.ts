@@ -6,6 +6,7 @@ import type {
 	ResetPasswordRequest,
 } from '../types';
 
+import { omit } from 'lodash';
 import instance from '../configs/instances';
 
 export const AuthAPI = {
@@ -27,7 +28,12 @@ export const AuthAPI = {
 
 	// Reset password
 	resetPassword: async (data: ResetPasswordRequest): Promise<void> => {
-		await instance.post('/api/auth/reset-password', data);
+		console.log('🚀 ~ data:', data);
+
+		await instance.post('/api/auth/reset-password', {
+			...omit(data, ['confirmNewPassword', 'token']),
+			resetToken: data.token,
+		});
 	},
 
 	// Logout (client-side)

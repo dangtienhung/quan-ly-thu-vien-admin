@@ -1,21 +1,22 @@
-import { Outlet, createBrowserRouter } from 'react-router-dom';
 import { PrivateRoute, PublicRoute } from '@/components';
+import { Outlet, createBrowserRouter } from 'react-router-dom';
 
 import { AuthProvider } from '@/context/auth-context';
 import { AuthenticatedLayout } from './layout/authenticated-layout';
 import AuthorsPage from './pages/authors/page';
 import BookCategoriesPage from './pages/book-categories/page';
+import EBookDetailPage from './pages/books/ebook/[id]/page';
 import BooksPage from './pages/books/page';
+import PhysicalBookDetailPage from './pages/books/physical/[id]/page';
 import BorrowRecordsPage from './pages/borrow-records/page';
 import CategoriesPage from './pages/categories/page';
 import Dashboard from './pages/dashboard/page';
-import EBookDetailPage from './pages/books/ebook/[id]/page';
 import EBooksPage from './pages/ebooks/page';
 import FinesPage from './pages/fines';
+import ForgotPasswordPage from './pages/forgot-password/page';
 import LocationsPage from './pages/locations/page';
 import LoginPage from './pages/login/page';
 import NotFound from './pages/not-found';
-import PhysicalBookDetailPage from './pages/books/physical/[id]/page';
 import PhysicalBooksPage from './pages/physical-books/page';
 import PhysicalCopiesPage from './pages/physical-copies/page';
 import PublishersPage from './pages/publishers/page';
@@ -23,6 +24,7 @@ import ReaderTypes from './pages/reader-types/page';
 import ReadersPage from './pages/readers/page';
 import RenewalsPage from './pages/renewals/page';
 import ReservationsPage from './pages/reservations/page';
+import ResetPasswordPage from './pages/reset-password/page';
 import UserPage from './pages/users/page';
 
 // Root layout that provides AuthProvider context
@@ -42,6 +44,22 @@ const routes = createBrowserRouter([
 				element: (
 					<PublicRoute>
 						<LoginPage />
+					</PublicRoute>
+				),
+			},
+			{
+				path: '/forgot-password',
+				element: (
+					<PublicRoute>
+						<ForgotPasswordPage />
+					</PublicRoute>
+				),
+			},
+			{
+				path: '/reset-password',
+				element: (
+					<PublicRoute>
+						<ResetPasswordPage />
 					</PublicRoute>
 				),
 			},

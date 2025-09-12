@@ -130,6 +130,15 @@ export default function LoginPage() {
 								{isLoading ? 'Logging in...' : 'Login'}
 							</Button>
 						</form>
+
+						<div className="text-center mt-4">
+							<button
+								onClick={() => (window.location.href = '/forgot-password')}
+								className="text-sm text-blue-600 hover:text-blue-800 underline"
+							>
+								Quên mật khẩu?
+							</button>
+						</div>
 					</Form>
 				</div>
 			</div>

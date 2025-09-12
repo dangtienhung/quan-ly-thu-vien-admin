@@ -1,5 +1,5 @@
-1. import excel bổ sung biểu mẫu (template cho người dùng tải về)
-14. bổ sung thêm chức năng đổi mật khẩu
+1. import excel bổ sung biểu mẫu (template cho người dùng tải về) -> oke
+14. bổ sung thêm chức năng đổi mật khẩu -> oke
 15. check lỗi phân quyền
 16. quyên mật khẩu bên admin
 2. chỉnh lại các trường tên cột: /src/pages/users/components/user-table.tsx
