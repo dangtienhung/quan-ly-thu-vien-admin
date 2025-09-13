@@ -6,24 +6,24 @@ export type PaginationPublisherQuery = PaginationQuery & {
 
 export type Publisher = {
 	id: string;
-	publisherName: string;
-	slug: string;
-	address: string;
-	phone: string;
+	publisherName?: string;
+	slug?: string;
+	address?: string;
+	phone?: string;
 	email: string;
 	website?: string;
 	description?: string;
 	country?: string;
 	establishedDate?: string;
-	isActive: boolean;
+	isActive?: boolean;
 	createdAt: string;
 	updatedAt: string;
 };
 
 export type CreatePublisherRequest = {
 	publisherName: string;
-	address: string;
-	phone: string;
+	address?: string;
+	phone?: string;
 	email: string;
 	website?: string;
 	description?: string;

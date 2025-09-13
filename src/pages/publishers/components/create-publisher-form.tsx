@@ -23,13 +23,20 @@ const createPublisherSchema = z.object({
 		.string()
 		.min(1, 'Tên nhà xuất bản là bắt buộc')
 		.max(255, 'Tên nhà xuất bản tối đa 255 ký tự'),
-	address: z.string().min(1, 'Địa chỉ là bắt buộc'),
+	address: z
+		.string()
+		.max(1000, 'Địa chỉ tối đa 1000 ký tự')
+		.optional()
+		.or(z.literal('')),
 	phone: z
 		.string()
-		.min(10, 'Số điện thoại tối thiểu 10 ký tự')
-		.max(20, 'Số điện thoại tối đa 20 ký tự'),
+		.regex(/^[0-9+\-\s\(\)]{10,20}$/, 'Số điện thoại không hợp lệ')
+		.max(20, 'Số điện thoại tối đa 20 ký tự')
+		.optional()
+		.or(z.literal('')),
 	email: z
 		.string()
+		.min(1, 'Email là bắt buộc')
 		.email('Email không hợp lệ')
 		.max(255, 'Email tối đa 255 ký tự'),
 	website: z
@@ -38,10 +45,14 @@ const createPublisherSchema = z.object({
 		.max(255, 'Website tối đa 255 ký tự')
 		.optional()
 		.or(z.literal('')),
-	description: z.string().optional(),
+	description: z
+		.string()
+		.max(1000, 'Mô tả tối đa 1000 ký tự')
+		.optional()
+		.or(z.literal('')),
 	country: z.string().optional(),
 	establishedDate: z.string().optional(),
-	isActive: z.boolean(),
+	isActive: z.boolean().optional(),
 });
 
 type CreatePublisherFormData = z.infer<typeof createPublisherSchema>;
@@ -81,10 +92,13 @@ const CreatePublisherForm = ({
 
 		onSubmit({
 			...data,
+			address: data.address || undefined,
+			phone: data.phone || undefined,
 			website: data.website || undefined,
 			description: data.description || undefined,
 			country: countryName || undefined,
 			establishedDate: data.establishedDate || undefined,
+			isActive: data.isActive ?? true, // Default to true if not provided
 		});
 		// Reset form after successful submission
 		form.reset();
@@ -92,7 +106,11 @@ const CreatePublisherForm = ({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+			<form
+				onSubmit={form.handleSubmit(handleSubmit)}
+				className="space-y-4"
+				autoComplete="off"
+			>
 				<FormField
 					control={form.control}
 					name="publisherName"
@@ -112,9 +130,9 @@ const CreatePublisherForm = ({
 					name="address"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Địa chỉ *</FormLabel>
+							<FormLabel>Địa chỉ</FormLabel>
 							<FormControl>
-								<Input placeholder="Nhập địa chỉ" {...field} />
+								<Input placeholder="Nhập địa chỉ (tùy chọn)" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -126,9 +144,9 @@ const CreatePublisherForm = ({
 					name="phone"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Số điện thoại *</FormLabel>
+							<FormLabel>Số điện thoại</FormLabel>
 							<FormControl>
-								<Input placeholder="Nhập số điện thoại" {...field} />
+								<Input placeholder="Nhập số điện thoại (tùy chọn)" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -158,7 +176,7 @@ const CreatePublisherForm = ({
 							<FormControl>
 								<Input
 									type="url"
-									placeholder="https://example.com"
+									placeholder="https://example.com (tùy chọn)"
 									{...field}
 								/>
 							</FormControl>
@@ -178,7 +196,7 @@ const CreatePublisherForm = ({
 									options={countries}
 									value={field.value}
 									onValueChange={field.onChange}
-									placeholder="Chọn quốc gia..."
+									placeholder="Chọn quốc gia... (tùy chọn)"
 									searchPlaceholder="Tìm kiếm quốc gia..."
 									emptyText="Không tìm thấy quốc gia nào"
 									disabled={isLoading}
@@ -196,7 +214,11 @@ const CreatePublisherForm = ({
 						<FormItem>
 							<FormLabel>Ngày thành lập</FormLabel>
 							<FormControl>
-								<Input type="date" {...field} />
+								<Input
+									type="date"
+									placeholder="Chọn ngày thành lập (tùy chọn)"
+									{...field}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -211,7 +233,7 @@ const CreatePublisherForm = ({
 							<FormLabel>Mô tả</FormLabel>
 							<FormControl>
 								<Textarea
-									placeholder="Nhập mô tả về nhà xuất bản"
+									placeholder="Nhập mô tả về nhà xuất bản (tùy chọn)"
 									className="resize-none"
 									{...field}
 								/>
@@ -231,7 +253,7 @@ const CreatePublisherForm = ({
 									Trạng thái hoạt động
 								</FormLabel>
 								<div className="text-sm text-muted-foreground">
-									Nhà xuất bản này có đang hoạt động không
+									Nhà xuất bản này có đang hoạt động không (mặc định: có)
 								</div>
 							</div>
 							<FormControl>

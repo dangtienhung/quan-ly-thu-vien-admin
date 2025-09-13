@@ -5,8 +5,8 @@
 16. quyên mật khẩu bên admin -> oke
 2. chỉnh lại các trường tên cột: /src/pages/users/components/user-table.tsx -> oke
 3. làm lại phần edit user: Chỉnh sửa người dùng
-4. chức năng add: chỉnh lại admin/nhân viên không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null
-5. nxb email là required, còn lại là optional
+4. chức năng add: chỉnh lại admin/nhân viên không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null -> oke
+5. nxb email là required, còn lại là optional -> oke
 6. quản lý thể loại thiển thị thành expand, ẩn ngày tạo, đồng bộ ui
 7. kệ sách ẩn ngày tạo
 8. tên sách k phải là unique
