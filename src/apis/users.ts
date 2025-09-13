@@ -120,6 +120,12 @@ export const UsersAPI = {
 		return res.data;
 	},
 
+	// Update reader
+	updateReader: async (readerId: string, readerData: any): Promise<any> => {
+		const res = await instance.patch(`/api/readers/${readerId}`, readerData);
+		return res.data;
+	},
+
 	// Get reader types
 	getReaderTypes: async (): Promise<any> => {
 		const res = await instance.get('/api/reader-types');

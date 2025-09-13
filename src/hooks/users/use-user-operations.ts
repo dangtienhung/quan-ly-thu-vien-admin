@@ -1,29 +1,20 @@
 import type {
 	CreateUserRequest,
 	UpdateUserRequest,
-	UserRole,
+	User,
 } from '@/types/user.type';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { ReadersAPI } from '@/apis';
+import { ReadersAPI, type Reader } from '@/apis';
 import { UsersAPI } from '@/apis/users';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface UserToDelete {
 	id: string;
 	readerId: string;
 	userCode: string;
 	username: string;
-}
-
-interface UserToEdit {
-	id: string;
-	userCode: string;
-	username: string;
-	email: string;
-	role: UserRole;
-	accountStatus: 'active' | 'inactive' | 'banned';
 }
 
 export const useUserOperations = () => {
@@ -36,7 +27,7 @@ export const useUserOperations = () => {
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
 	const [userToDelete, setUserToDelete] = useState<UserToDelete | null>(null);
-	const [userToEdit, setUserToEdit] = useState<UserToEdit | null>(null);
+	const [userToEdit, setUserToEdit] = useState<User | Reader | null>(null);
 
 	// Create user mutation
 	const createUserMutation = useMutation({
@@ -177,7 +168,7 @@ export const useUserOperations = () => {
 		setIsDeleteDialogOpen(true);
 	};
 
-	const openEditSheet = (user: UserToEdit) => {
+	const openEditSheet = (user: User | Reader) => {
 		setUserToEdit(user);
 		setIsEditSheetOpen(true);
 	};

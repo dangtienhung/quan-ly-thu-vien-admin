@@ -2,22 +2,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import { ActionButtons } from './components/action-buttons';
-import { Button } from '@/components/ui/button';
-import { DeleteConfirmDialog } from './components/delete-confirm-dialog';
-import { EditUserSheet } from './components/edit-user-sheet';
-import { IconRefresh } from '@tabler/icons-react';
 import PaginationWrapper from '@/components/pagination-wrapper';
-import type { Reader } from '@/types/readers';
-import { SearchBar } from './components/search-bar';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { UserRole } from '@/types/user.type';
-import { UserTable } from './components/user-table';
-import { omit } from 'lodash';
+import { useUsers } from '@/hooks';
 import { useReaders } from '@/hooks/readers/use-readers';
 import { useUserOperations } from '@/hooks/users/use-user-operations';
 import { useUserSearch } from '@/hooks/users/use-user-search';
-import { useUsers } from '@/hooks';
+import type { Reader } from '@/types/readers';
+import { IconRefresh } from '@tabler/icons-react';
+import { omit } from 'lodash';
+import { ActionButtons } from './components/action-buttons';
+import { DeleteConfirmDialog } from './components/delete-confirm-dialog';
+import { EditUserSheet } from './components/edit-user-sheet';
+import { SearchBar } from './components/search-bar';
+import { UserTable } from './components/user-table';
 
 const UserPage = () => {
 	// Custom hooks
@@ -186,14 +185,7 @@ const UserPage = () => {
 						// Convert Reader to UserToEdit format for editing
 						if (isReaderView && 'readerType' in user) {
 							const reader = user as Reader;
-							openEditSheet({
-								id: reader.id,
-								userCode: reader.user?.userCode || '',
-								username: reader.fullName,
-								email: reader.user?.email || '',
-								role: 'reader' as UserRole,
-								accountStatus: reader.isActive ? 'active' : 'inactive',
-							});
+							openEditSheet(reader);
 						} else {
 							openEditSheet(user as Parameters<typeof openEditSheet>[0]);
 						}
@@ -241,7 +233,6 @@ const UserPage = () => {
 				open={isEditSheetOpen}
 				onOpenChange={setIsEditSheetOpen}
 				userToEdit={userToEdit}
-				onSubmit={handleUpdateUser}
 				onCancel={closeEditSheet}
 				isLoading={isUpdating}
 			/>

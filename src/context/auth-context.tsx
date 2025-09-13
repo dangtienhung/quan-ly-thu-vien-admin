@@ -42,14 +42,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 			await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
 		},
 		onError: (error) => {
-			console.error('Login failed:', error);
+			console.error('Đăng nhập thất bại:', error);
 		},
 	});
 
 	useEffect(() => {
 		// Only check role if we have user data and user is not admin
 		if (currentUser && currentUser.role !== 'admin') {
-			console.log('User is not admin, redirecting to login');
+			console.log(
+				'Người dùng không phải admin, chuyển hướng đến trang đăng nhập'
+			);
 			navigate('/login');
 			toast.error('Bạn không có quyền truy cập vào trang quản trị');
 			localStorage.removeItem('accessToken');
@@ -57,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 			setUser(currentUser);
 			// Only show success toast on login, not on page refresh
 			if (hasJustLoggedIn) {
-				toast.success('Login successful!');
+				toast.success('Đăng nhập thành công!');
 				setHasJustLoggedIn(false);
 			}
 		}
@@ -71,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 			// Set flag to show success toast
 			setHasJustLoggedIn(true);
 		} catch (error) {
-			console.error('Login failed:', error);
+			console.error('Đăng nhập thất bại:', error);
 			throw error;
 		} finally {
 			setIsLoading(false);
