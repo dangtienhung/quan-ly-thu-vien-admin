@@ -17,10 +17,11 @@ import {
 } from '@/components/ui/select';
 import type { CreateUserRequest, UserRole } from '@/types/user.type';
 
-import { UsersAPI } from '@/apis/users';
+import { UsersAPI } from '@/apis';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getContextualErrorMessage } from '@/utils/error-handler';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -36,27 +37,25 @@ const createUserSchema = z.object({
 	accountStatus: z.enum(['active', 'inactive', 'banned'] as const),
 	// Reader fields
 	fullName: z.string().min(1, 'Họ tên là bắt buộc'),
-	dob: z.string().min(1, 'Ngày sinh là bắt buộc'),
-	gender: z.enum(['male', 'female', 'other'] as const),
-	address: z.string().min(1, 'Địa chỉ là bắt buộc'),
-	phone: z.string().min(1, 'Số điện thoại là bắt buộc'),
+	dob: z.string().optional(),
+	gender: z.enum(['male', 'female', 'other'] as const).optional(),
+	address: z.string().optional(),
+	phone: z.string().optional(),
 	readerType: z.enum(['student', 'teacher', 'staff'] as const),
-	cardNumber: z.string().min(1, 'Số thẻ là bắt buộc'),
-	cardIssueDate: z.string().min(1, 'Ngày hoạt động là bắt buộc'),
-	cardExpiryDate: z.string().min(1, 'Ngày hết hạn thẻ là bắt buộc'),
+	cardNumber: z.string().optional(),
+	cardIssueDate: z.string().optional(),
+	cardExpiryDate: z.string().optional(),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 interface CreateUserFormProps {
-	onSubmit: (data: CreateUserRequest) => void;
 	onCancel: () => void;
 	isLoading?: boolean;
 	defaultRole?: UserRole;
 }
 
 const CreateUserForm = ({
-	onSubmit,
 	onCancel,
 	isLoading = false,
 	defaultRole = 'reader',
@@ -79,10 +78,8 @@ const CreateUserForm = ({
 			phone: '',
 			readerType: 'student',
 			cardNumber: '',
-			cardIssueDate: new Date().toISOString().split('T')[0], // Today
-			cardExpiryDate: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000)
-				.toISOString()
-				.split('T')[0], // 3 years from now
+			cardIssueDate: '2025-09-05', // Ngày hoạt động cố định
+			cardExpiryDate: '2028-09-05', // 3 năm sau ngày hoạt động
 		},
 	});
 
@@ -102,7 +99,6 @@ const CreateUserForm = ({
 	// Cập nhật userCode và cardNumber khi role thay đổi
 	React.useEffect(() => {
 		const currentUserCode = form.getValues('userCode');
-		const currentCardNumber = form.getValues('cardNumber');
 
 		if (
 			!currentUserCode ||
@@ -113,6 +109,11 @@ const CreateUserForm = ({
 			form.setValue('userCode', newUserCode);
 			// Cập nhật cardNumber = userCode
 			form.setValue('cardNumber', newUserCode);
+		}
+
+		// Nếu là nhân viên, set readerType = 'staff'
+		if (watchRole === 'admin') {
+			form.setValue('readerType', 'staff');
 		}
 	}, [watchRole, form]);
 
@@ -134,6 +135,17 @@ const CreateUserForm = ({
 		}
 	}, [watchCardIssueDate, form]);
 
+	// Cập nhật ngày hết hạn khi role thay đổi
+	React.useEffect(() => {
+		const currentIssueDate = form.getValues('cardIssueDate');
+		if (currentIssueDate) {
+			const issueDate = new Date(currentIssueDate);
+			const expiryDate = new Date(issueDate);
+			expiryDate.setFullYear(expiryDate.getFullYear() + 3);
+			form.setValue('cardExpiryDate', expiryDate.toISOString().split('T')[0]);
+		}
+	}, [watchRole, form]);
+
 	const handleSubmit = async (data: CreateUserFormData) => {
 		console.log('🚀 ~ handleSubmit ~ data:', data);
 		try {
@@ -154,41 +166,63 @@ const CreateUserForm = ({
 			// Nếu tạo user thành công và role là reader, tạo reader
 			if (newUser) {
 				try {
-					// Tạo reader data
-					const readerData = {
-						userId: newUser.id,
-						fullName: data.fullName,
-						dob: data.dob ? new Date(data.dob + 'T00:00:00') : null,
-						gender: data.gender,
-						address: data.address,
-						phone: data.phone,
-						cardNumber: data.cardNumber,
-						cardIssueDate: data.cardIssueDate
-							? new Date(data.cardIssueDate + 'T00:00:00')
-							: null,
-						cardExpiryDate: data.cardExpiryDate
-							? new Date(data.cardExpiryDate + 'T00:00:00')
-							: null,
-						readerTypeName: data.readerType,
-					};
+					if (newUser.role === 'reader') {
+						// Tạo reader data
+						const readerData = {
+							userId: newUser.id,
+							fullName: data.fullName,
+							dob: data.dob ? new Date(data.dob + 'T00:00:00') : null,
+							gender: data.gender || null,
+							address: data.address || null,
+							phone: data.phone || null,
+							cardNumber: data.userCode || null,
+							cardIssueDate: data.cardIssueDate
+								? new Date(data.cardIssueDate + 'T00:00:00')
+								: null,
+							cardExpiryDate: data.cardExpiryDate
+								? new Date(data.cardExpiryDate + 'T00:00:00')
+								: null,
+							readerTypeName: data.readerType,
+						};
 
-					// Gọi API tạo reader
-					await UsersAPI.createReaderForUser(newUser.id, readerData);
+						try {
+							// Gọi API tạo reader
+							await UsersAPI.createReaderForUser(newUser.id, readerData);
+						} catch (error) {
+							console.error('Error creating reader:', error);
+							const errorMessage = getContextualErrorMessage(error, 'reader');
+							toast.error(errorMessage);
+						}
 
-					toast.success('Tạo user và reader thành công!');
-					queryClient.invalidateQueries({ queryKey: ['users'] });
-				} catch (readerError: any) {
+						toast.success('Tạo user thành công!');
+						queryClient.invalidateQueries({ queryKey: ['users'] });
+					} else {
+						const readerDataForAdmin = {
+							userId: newUser.id,
+							fullName: data.fullName,
+							cardNumber: data.userCode,
+							readerTypeName: data.readerType,
+						};
+						// Gọi API tạo reader
+						await UsersAPI.createReaderForUser(newUser.id, readerDataForAdmin);
+
+						toast.success('Tạo user thành công!');
+						queryClient.invalidateQueries({ queryKey: ['users'] });
+					}
+				} catch (readerError: unknown) {
 					console.error('Error creating reader:', readerError);
+					const errorMessage = getContextualErrorMessage(readerError, 'reader');
 					toast.error(
-						`Tạo user thành công nhưng tạo reader thất bại: ${readerError.message}`
+						`Tạo user thành công nhưng tạo reader thất bại: ${errorMessage}`
 					);
 				}
 			} else {
 				toast.success('Tạo user thành công!');
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Error creating user:', error);
-			toast.error(`Tạo user thất bại: ${error.message}`);
+			const errorMessage = getContextualErrorMessage(error, 'user');
+			toast.error(errorMessage);
 		}
 	};
 
@@ -198,6 +232,7 @@ const CreateUserForm = ({
 				<form
 					onSubmit={form.handleSubmit(handleSubmit)}
 					className="flex-1 flex flex-col min-h-0"
+					autoComplete="off"
 				>
 					{/* Scrollable content area */}
 					<ScrollArea className="flex-1 px-1 max-h-[calc(100vh-120px)]">
@@ -327,120 +362,142 @@ const CreateUserForm = ({
 							</div>
 
 							{/* Reader Information Section - Only show if role is reader */}
-							<div className="space-y-4 ">
-								<FormField
-									control={form.control}
-									name="dob"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Ngày sinh</FormLabel>
-											<FormControl>
-												<Input type="date" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="gender"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Giới tính</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-											>
+							{watchRole === 'reader' && (
+								<div className="space-y-4">
+									<FormField
+										control={form.control}
+										name="dob"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Ngày sinh</FormLabel>
 												<FormControl>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Chọn giới tính" />
-													</SelectTrigger>
+													<Input type="date" {...field} />
 												</FormControl>
-												<SelectContent>
-													<SelectItem value="male">Nam</SelectItem>
-													<SelectItem value="female">Nữ</SelectItem>
-													<SelectItem value="other">Khác</SelectItem>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 
-								<FormField
-									control={form.control}
-									name="address"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Địa chỉ</FormLabel>
-											<FormControl>
-												<Input placeholder="Nhập địa chỉ" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+									<FormField
+										control={form.control}
+										name="gender"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Giới tính</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+												>
+													<FormControl>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Chọn giới tính" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														<SelectItem value="male">Nam</SelectItem>
+														<SelectItem value="female">Nữ</SelectItem>
+														<SelectItem value="other">Khác</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 
-								<FormField
-									control={form.control}
-									name="phone"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Số điện thoại</FormLabel>
-											<FormControl>
-												<Input placeholder="Nhập số điện thoại" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="readerType"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Loại độc giả</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-											>
+									<FormField
+										control={form.control}
+										name="address"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Địa chỉ</FormLabel>
 												<FormControl>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Chọn loại độc giả" />
-													</SelectTrigger>
+													<Input placeholder="Nhập địa chỉ" {...field} />
 												</FormControl>
-												<SelectContent>
-													<SelectItem value="student">Học Sinh</SelectItem>
-													<SelectItem value="teacher">Giáo viên</SelectItem>
-													<SelectItem value="staff">Nhân viên</SelectItem>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 
-								<FormField
-									control={form.control}
-									name="cardIssueDate"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Ngày hoạt động</FormLabel>
-											<FormControl>
-												<Input type="date" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+									<FormField
+										control={form.control}
+										name="phone"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Số điện thoại</FormLabel>
+												<FormControl>
+													<Input placeholder="Nhập số điện thoại" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 
-								{/* Hidden fields for form validation */}
-								<input type="hidden" {...form.register('fullName')} />
-								<input type="hidden" {...form.register('cardNumber')} />
-								<input type="hidden" {...form.register('cardExpiryDate')} />
-							</div>
+									<FormField
+										control={form.control}
+										name="readerType"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Loại độc giả</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+												>
+													<FormControl>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Chọn loại độc giả" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														<SelectItem value="student">Học Sinh</SelectItem>
+														<SelectItem value="teacher">Giáo viên</SelectItem>
+														<SelectItem value="staff">Nhân viên</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							)}
+
+							{/* Card Information Section - Only show for reader role */}
+							{watchRole === 'reader' && (
+								<div className="space-y-4">
+									<FormField
+										control={form.control}
+										name="cardIssueDate"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Ngày hoạt động</FormLabel>
+												<FormControl>
+													<Input type="date" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="cardExpiryDate"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Ngày hết hạn</FormLabel>
+												<FormControl>
+													<Input type="date" {...field} disabled />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							)}
+
+							{/* Hidden fields for form validation */}
+							<input type="hidden" {...form.register('fullName')} />
+							<input type="hidden" {...form.register('cardNumber')} />
+							<input type="hidden" {...form.register('cardIssueDate')} />
+							<input type="hidden" {...form.register('cardExpiryDate')} />
 						</div>
 					</ScrollArea>
 

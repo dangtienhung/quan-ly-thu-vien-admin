@@ -31,7 +31,24 @@ instance.interceptors.response.use(
 			localStorage.removeItem('accessToken');
 			window.location.href = '/login';
 		}
-		return Promise.reject(new Error(error?.message || 'Response error'));
+
+		// Tạo error object với thông tin chi tiết từ backend
+		const errorResponse = error.response?.data;
+		const errorMessage =
+			errorResponse?.message || error?.message || 'Response error';
+
+		// Tạo error object mới với thông tin đầy đủ
+		const customError = new Error(errorMessage) as Error & {
+			response?: unknown;
+			statusCode?: number;
+			error?: string;
+		};
+		customError.response = error.response;
+		customError.statusCode =
+			errorResponse?.statusCode || error.response?.status;
+		customError.error = errorResponse?.error || 'Unknown Error';
+
+		return Promise.reject(customError);
 	}
 );
 
