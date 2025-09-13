@@ -135,7 +135,7 @@ export interface ReservationExpiringSoonItem {
 
 export interface ReservationReaderInfo {
 	id: string;
-	full_name: string;
+	fullName: string;
 	card_number: string;
 	email?: string;
 	phone?: string;

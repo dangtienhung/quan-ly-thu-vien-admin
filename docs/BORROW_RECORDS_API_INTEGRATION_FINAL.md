@@ -35,7 +35,7 @@ interface SearchReaderQuery {
 ```typescript
 interface Reader {
 	id: string;
-	full_name: string;
+	fullName: string;
 	card_number: string;
 	date_of_birth: string;
 	gender: 'male' | 'female' | 'other';
@@ -189,7 +189,7 @@ const searchPhysicalCopies = async (query: string) => {
 // Render reader options: "Tên độc giả (Số thẻ)"
 const renderReaderOption = (reader: any) => ({
 	value: reader.id,
-	label: `${reader.full_name} (${reader.card_number})`,
+	label: `${reader.fullName} (${reader.card_number})`,
 });
 
 // Render physical copy options: "Tên sách - Barcode (Trạng thái)"
@@ -211,7 +211,7 @@ const renderPhysicalCopyOption = (copy: any) => ({
   data: [
     {
       id: "uuid",
-      full_name: "Nguyễn Văn A",
+      fullName: "Nguyễn Văn A",
       card_number: "LIB-2024-001",
       date_of_birth: "1990-01-01",
       gender: "male",

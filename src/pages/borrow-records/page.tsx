@@ -20,6 +20,7 @@ import {
 	BorrowRecordsTabs,
 	PageHeader,
 	RecordDetailsDialog,
+	SearchBar,
 } from './components';
 
 import { BorrowRecordsAPI } from '@/apis/borrow-records';
@@ -44,6 +45,7 @@ export default function BorrowRecordsPage() {
 	// const status = params.get('status') || 'pending_approval';
 	const page = params.get('page') || '1';
 	const limit = params.get('limit') || '20';
+	const searchQuery = params.get('q') || '';
 
 	const queryClient = useQueryClient();
 
@@ -51,6 +53,7 @@ export default function BorrowRecordsPage() {
 		status: status as BorrowStatus,
 		page: Number(page),
 		limit: Number(limit),
+		q: searchQuery,
 	};
 
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -529,6 +532,39 @@ export default function BorrowRecordsPage() {
 
 			{/* Statistics Cards */}
 			<StatisticsCards stats={stats || null} isLoading={false} />
+
+			{/* Search Bar */}
+			<SearchBar />
+
+			{/* Search Indicator */}
+			{searchQuery && (
+				<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center space-x-2">
+							<span className="text-sm text-blue-700">
+								Đang tìm kiếm: <strong>"{searchQuery}"</strong>
+							</span>
+							<span className="text-xs text-blue-600">
+								({statusRecords?.length || 0} kết quả)
+							</span>
+						</div>
+						<button
+							onClick={() => {
+								const currentParams = new URLSearchParams(params);
+								currentParams.delete('q');
+								currentParams.set('page', '1');
+								navigate({
+									pathname: '/borrow-records',
+									search: currentParams.toString(),
+								});
+							}}
+							className="text-blue-600 hover:text-blue-800 text-sm underline"
+						>
+							Xóa tìm kiếm
+						</button>
+					</div>
+				</div>
+			)}
 
 			{/* Main Content */}
 			<BorrowRecordsTabs

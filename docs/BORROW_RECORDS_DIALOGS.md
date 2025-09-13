@@ -327,7 +327,7 @@ const handleBorrowDateChange = (date: string) => {
 	onOpenChange={setShowReturnDialog}
 	recordId={selectedRecord?.id || ''}
 	bookTitle={selectedRecord?.copy?.book?.title}
-	readerName={selectedRecord?.reader?.full_name}
+	readerName={selectedRecord?.reader?.fullName}
 	onSubmit={handleReturnBook}
 	isLoading={returnBookMutation.isPending}
 />
@@ -341,7 +341,7 @@ const handleBorrowDateChange = (date: string) => {
 	onOpenChange={setShowRenewDialog}
 	recordId={selectedRecord?.id || ''}
 	bookTitle={selectedRecord?.copy?.book?.title}
-	readerName={selectedRecord?.reader?.full_name}
+	readerName={selectedRecord?.reader?.fullName}
 	currentDueDate={selectedRecord?.due_date}
 	onSubmit={handleRenewBook}
 	isLoading={renewBookMutation.isPending}

@@ -93,7 +93,7 @@ interface Reader {
   id: uuid;
   user_id: uuid;                 // Link to Users
   reader_type_id: uuid;          // Link to ReaderTypes
-  full_name: string;
+  fullName: string;
   dob: date;
   gender: 'male' | 'female' | 'other';
   address: string;

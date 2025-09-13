@@ -84,7 +84,7 @@ export interface BorrowRecord extends BaseEntity {
 
 export interface BorrowRecordReaderInfo {
 	id: string;
-	full_name: string;
+	fullName: string;
 	card_number: string;
 	reader_type?: {
 		type_name: string;
@@ -181,6 +181,7 @@ export interface BorrowRecordStatusQuery {
 	status: BorrowStatus;
 	page?: number;
 	limit?: number;
+	q?: string;
 }
 
 export interface BorrowRecordReaderQuery {

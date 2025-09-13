@@ -195,7 +195,7 @@ const readers = await ReadersAPI.getAll({ page: 1, limit: 10 });
 // Tạo độc giả mới
 const newReader = await ReadersAPI.create({
   user_id: 'user-uuid',
-  full_name: 'Nguyễn Văn A',
+  fullName: 'Nguyễn Văn A',
   date_of_birth: '1990-01-01',
   gender: 'male',
   phone: '0123456789',

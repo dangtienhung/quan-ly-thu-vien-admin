@@ -100,7 +100,7 @@ const searchPhysicalCopies = async (query: string) => {
 // Render reader options
 const renderReaderOption = (reader: any) => ({
 	value: reader.id,
-	label: `${reader.full_name} (${reader.card_number})`,
+	label: `${reader.fullName} (${reader.card_number})`,
 });
 
 // Render physical copy options
