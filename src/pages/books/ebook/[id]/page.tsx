@@ -2,15 +2,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
 	BookInfoCard,
 	CreateEBookDialog,
+	DownloadConfirmDialog,
 	EBookDetailHeader,
 	EBookListCard,
+	EditEBookDialog,
 } from '@/pages/books/ebook/[id]/components';
+import type { CreateEBookRequest, EBook } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { BooksAPI } from '@/apis/books';
 import { EBooksAPI } from '@/apis/ebooks';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { CreateEBookRequest } from '@/types';
+import { useDownloadEBook } from '@/pages/books/ebook/[id]/hooks/use-download-ebook';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -19,6 +22,12 @@ const EBookDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const queryClient = useQueryClient();
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
+	const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
+	const [selectedEbook, setSelectedEbook] = useState<EBook | null>(null);
+
+	// Custom hook for download functionality
+	const { downloadEBook } = useDownloadEBook({ bookId: id! });
 
 	// Fetch book details
 	const {
@@ -55,15 +64,18 @@ const EBookDetailPage = () => {
 		},
 	});
 
-	// Increment download mutation
-	const incrementDownloadMutation = useMutation({
-		mutationFn: (ebookId: string) => EBooksAPI.incrementDownloads(ebookId),
+	// Update ebook mutation
+	const updateEBookMutation = useMutation({
+		mutationFn: ({ id, data }: { id: string; data: any }) =>
+			EBooksAPI.update(id, data),
 		onSuccess: () => {
-			toast.success('Đã ghi nhận lượt tải!');
+			toast.success('Cập nhật ebook thành công!');
 			queryClient.invalidateQueries({ queryKey: ['ebooks-book', id] });
+			setEditDialogOpen(false);
+			setSelectedEbook(null);
 		},
 		onError: (error: any) => {
-			toast.error(error.message || 'Có lỗi xảy ra');
+			toast.error(error.message || 'Có lỗi xảy ra khi cập nhật ebook');
 		},
 	});
 
@@ -71,10 +83,41 @@ const EBookDetailPage = () => {
 		createEBookMutation.mutate(data);
 	};
 
-	const handleDownload = (ebookId: string) => {
-		incrementDownloadMutation.mutate(ebookId);
-		// TODO: Implement actual download logic
-		toast.info('Tính năng tải xuống sẽ được phát triển');
+	const handleEditEBook = (ebook: EBook) => {
+		setSelectedEbook(ebook);
+		setEditDialogOpen(true);
+	};
+
+	const handleUpdateEBook = async (data: any) => {
+		if (selectedEbook) {
+			updateEBookMutation.mutate({ id: selectedEbook.id, data });
+		}
+	};
+
+	const handlePreviewEBook = async (ebook: EBook) => {
+		try {
+			await downloadEBook(ebook);
+		} catch (error) {
+			// Error handling is done in the downloadEBook function
+		}
+	};
+
+	const handleDownloadClick = (ebook: EBook) => {
+		setSelectedEbook(ebook);
+		setDownloadDialogOpen(true);
+	};
+
+	const handleConfirmDownload = async () => {
+		if (selectedEbook) {
+			await downloadEBook(selectedEbook);
+		}
+		setDownloadDialogOpen(false);
+		setSelectedEbook(null);
+	};
+
+	const handleCancelDownload = () => {
+		setDownloadDialogOpen(false);
+		setSelectedEbook(null);
 	};
 
 	const handleCreateNew = () => {
@@ -117,7 +160,8 @@ const EBookDetailPage = () => {
 			<EBookListCard
 				ebooks={ebooks}
 				onCreateNew={handleCreateNew}
-				onDownload={handleDownload}
+				onDownload={handleDownloadClick}
+				onEdit={handleEditEBook}
 			/>
 
 			{/* Create EBook Dialog */}
@@ -128,6 +172,26 @@ const EBookDetailPage = () => {
 				bookTitle={book?.title}
 				onSubmit={handleCreateEBook}
 				isLoading={createEBookMutation.isPending}
+			/>
+
+			{/* Download Confirmation Dialog */}
+			<DownloadConfirmDialog
+				open={downloadDialogOpen}
+				onOpenChange={setDownloadDialogOpen}
+				ebook={selectedEbook}
+				bookTitle={book?.title}
+				onConfirm={handleConfirmDownload}
+				onCancel={handleCancelDownload}
+			/>
+
+			{/* Edit EBook Dialog */}
+			<EditEBookDialog
+				open={editDialogOpen}
+				onOpenChange={setEditDialogOpen}
+				ebook={selectedEbook}
+				onSubmit={handleUpdateEBook}
+				onPreview={handlePreviewEBook}
+				isLoading={updateEBookMutation.isPending}
 			/>
 		</div>
 	);

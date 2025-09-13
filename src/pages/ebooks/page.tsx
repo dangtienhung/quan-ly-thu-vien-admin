@@ -1,6 +1,3 @@
-import { EBooksAPI } from '@/apis';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
 	Card,
 	CardContent,
@@ -8,7 +5,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
 import {
 	Select,
 	SelectContent,
@@ -17,7 +21,6 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuery } from '@tanstack/react-query';
 import {
 	BarChart3,
 	Download,
@@ -26,12 +29,30 @@ import {
 	Plus,
 	Search,
 } from 'lucide-react';
+
+import { EBooksAPI } from '@/apis';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 export default function EBooksPage() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [selectedFormat, setSelectedFormat] = useState<string>('all');
 	const [activeTab, setActiveTab] = useState('all');
+	const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+	const [selectedEbook, setSelectedEbook] = useState<{
+		id: string;
+		file_format: string;
+		file_size: number;
+		download_count: number;
+		created_at: string;
+		book?: {
+			title: string;
+			isbn: string;
+		};
+	} | null>(null);
 
 	// Fetch ebooks data
 	const { data: ebooksData, isLoading: isLoadingEbooks } = useQuery({
@@ -63,6 +84,37 @@ export default function EBooksPage() {
 
 	const handleFormatFilter = (format: string) => {
 		setSelectedFormat(format);
+	};
+
+	const handleDownloadClick = (ebook: {
+		id: string;
+		file_format: string;
+		file_size: number;
+		download_count: number;
+		created_at: string;
+		book?: {
+			title: string;
+			isbn: string;
+		};
+	}) => {
+		setSelectedEbook(ebook);
+		setDownloadDialogOpen(true);
+	};
+
+	const handleConfirmDownload = () => {
+		if (selectedEbook) {
+			// Thực hiện download
+			console.log('Downloading ebook:', selectedEbook);
+			// TODO: Implement actual download logic
+			// EBooksAPI.download(selectedEbook.id);
+		}
+		setDownloadDialogOpen(false);
+		setSelectedEbook(null);
+	};
+
+	const handleCancelDownload = () => {
+		setDownloadDialogOpen(false);
+		setSelectedEbook(null);
 	};
 
 	const formatFileSize = (bytes: number) => {
@@ -236,7 +288,12 @@ export default function EBooksPage() {
 											</div>
 										</div>
 										<div className="flex gap-2 mt-4">
-											<Button variant="outline" size="sm" className="flex-1">
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex-1"
+												onClick={() => handleDownloadClick(ebook)}
+											>
 												<Download className="mr-2 h-4 w-4" />
 												Tải xuống
 											</Button>
@@ -285,7 +342,12 @@ export default function EBooksPage() {
 										</div>
 									</div>
 									<div className="flex gap-2 mt-4">
-										<Button variant="outline" size="sm" className="flex-1">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1"
+											onClick={() => handleDownloadClick(ebook)}
+										>
 											<Download className="mr-2 h-4 w-4" />
 											Tải xuống
 										</Button>
@@ -333,7 +395,12 @@ export default function EBooksPage() {
 										</div>
 									</div>
 									<div className="flex gap-2 mt-4">
-										<Button variant="outline" size="sm" className="flex-1">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1"
+											onClick={() => handleDownloadClick(ebook)}
+										>
 											<Download className="mr-2 h-4 w-4" />
 											Tải xuống
 										</Button>
@@ -347,6 +414,62 @@ export default function EBooksPage() {
 					</div>
 				</TabsContent>
 			</Tabs>
+
+			{/* Download Confirmation Dialog */}
+			<Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Xác nhận tải xuống</DialogTitle>
+						<DialogDescription>
+							Bạn có chắc chắn muốn tải xuống ebook này không?
+						</DialogDescription>
+					</DialogHeader>
+					{selectedEbook && (
+						<div className="space-y-4">
+							<div className="bg-gray-50 p-4 rounded-lg">
+								<h4 className="font-semibold text-lg">
+									{selectedEbook.book?.title}
+								</h4>
+								<div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+									<div>
+										<span className="text-gray-600">Định dạng:</span>
+										<span className="ml-2 font-medium">
+											{selectedEbook.file_format}
+										</span>
+									</div>
+									<div>
+										<span className="text-gray-600">Kích thước:</span>
+										<span className="ml-2 font-medium">
+											{formatFileSize(selectedEbook.file_size)}
+										</span>
+									</div>
+									<div>
+										<span className="text-gray-600">ISBN:</span>
+										<span className="ml-2 font-medium">
+											{selectedEbook.book?.isbn}
+										</span>
+									</div>
+									<div>
+										<span className="text-gray-600">Lượt tải:</span>
+										<span className="ml-2 font-medium">
+											{selectedEbook.download_count}
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					)}
+					<DialogFooter>
+						<Button variant="outline" onClick={handleCancelDownload}>
+							Hủy
+						</Button>
+						<Button onClick={handleConfirmDownload}>
+							<Download className="mr-2 h-4 w-4" />
+							Tải xuống
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
