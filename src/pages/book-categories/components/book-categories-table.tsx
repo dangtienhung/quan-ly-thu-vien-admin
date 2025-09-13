@@ -106,15 +106,15 @@ export default function BookCategoriesTable({
 					<TableCell>
 						<div className="flex gap-2">
 							<Button
-								size="icon"
-								variant="outline"
+								variant="ghost"
+								size="sm"
 								onClick={() => onEdit(category)}
 							>
 								<IconEdit size={16} />
 							</Button>
 							<Button
-								size="icon"
-								variant="destructive"
+								variant="ghost"
+								size="sm"
 								onClick={() => onDelete(category)}
 							>
 								<IconTrash size={16} />

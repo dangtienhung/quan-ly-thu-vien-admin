@@ -1,4 +1,3 @@
-import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
 	Table,
 	TableBody,
@@ -7,6 +6,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
+import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,6 @@ export const LocationsTable = memo(
 							<TableHead>Khu vực</TableHead>
 							<TableHead>Số kệ</TableHead>
 							<TableHead>Trạng thái</TableHead>
-							<TableHead>Ngày tạo</TableHead>
 							<TableHead className="text-right">Thao tác</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -48,9 +47,6 @@ export const LocationsTable = memo(
 									<Badge variant={location.isActive ? 'default' : 'secondary'}>
 										{location.isActive ? 'Hoạt động' : 'Tạm ngưng'}
 									</Badge>
-								</TableCell>
-								<TableCell>
-									{new Date(location.createdAt).toLocaleDateString('vi-VN')}
 								</TableCell>
 								<TableCell className="text-right">
 									<div className="flex items-center justify-end gap-2">

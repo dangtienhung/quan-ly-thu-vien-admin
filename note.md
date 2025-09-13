@@ -7,8 +7,8 @@
 3. làm lại phần edit user: Chỉnh sửa người dùng
 4. chức năng add: chỉnh lại admin/nhân viên không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null -> oke
 5. nxb email là required, còn lại là optional -> oke
-6. quản lý thể loại thiển thị thành expand, ẩn ngày tạo, đồng bộ ui
-7. kệ sách ẩn ngày tạo
+6. quản lý thể loại thiển thị thành expand, ẩn ngày tạo, đồng bộ ui -> oke
+7. kệ sách ẩn ngày tạo -> oke
 8. tên sách k phải là unique
 9. ebook: đang không edit được
 10. physical book: edit tất cả các trường
