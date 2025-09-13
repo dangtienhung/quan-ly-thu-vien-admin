@@ -2,6 +2,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
 	BookInfoCard,
 	CreateEBookDialog,
+	DeleteEBookConfirmDialog,
 	DownloadConfirmDialog,
 	EBookDetailHeader,
 	EBookListCard,
@@ -24,6 +25,7 @@ const EBookDetailPage = () => {
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [selectedEbook, setSelectedEbook] = useState<EBook | null>(null);
 
 	// Custom hook for download functionality
@@ -79,6 +81,20 @@ const EBookDetailPage = () => {
 		},
 	});
 
+	// Delete ebook mutation
+	const deleteEBookMutation = useMutation({
+		mutationFn: (ebookId: string) => EBooksAPI.delete(ebookId),
+		onSuccess: () => {
+			toast.success('Xóa ebook thành công!');
+			queryClient.invalidateQueries({ queryKey: ['ebooks-book', id] });
+			setDeleteDialogOpen(false);
+			setSelectedEbook(null);
+		},
+		onError: (error: any) => {
+			toast.error(error.message || 'Có lỗi xảy ra khi xóa ebook');
+		},
+	});
+
 	const handleCreateEBook = async (data: CreateEBookRequest) => {
 		createEBookMutation.mutate(data);
 	};
@@ -100,6 +116,22 @@ const EBookDetailPage = () => {
 		} catch (error) {
 			// Error handling is done in the downloadEBook function
 		}
+	};
+
+	const handleDeleteEBook = (ebook: EBook) => {
+		setSelectedEbook(ebook);
+		setDeleteDialogOpen(true);
+	};
+
+	const handleConfirmDeleteEBook = () => {
+		if (selectedEbook) {
+			deleteEBookMutation.mutate(selectedEbook.id);
+		}
+	};
+
+	const handleCancelDeleteEBook = () => {
+		setDeleteDialogOpen(false);
+		setSelectedEbook(null);
 	};
 
 	const handleDownloadClick = (ebook: EBook) => {
@@ -162,6 +194,7 @@ const EBookDetailPage = () => {
 				onCreateNew={handleCreateNew}
 				onDownload={handleDownloadClick}
 				onEdit={handleEditEBook}
+				onDelete={handleDeleteEBook}
 			/>
 
 			{/* Create EBook Dialog */}
@@ -192,6 +225,16 @@ const EBookDetailPage = () => {
 				onSubmit={handleUpdateEBook}
 				onPreview={handlePreviewEBook}
 				isLoading={updateEBookMutation.isPending}
+			/>
+
+			{/* Delete EBook Confirm Dialog */}
+			<DeleteEBookConfirmDialog
+				open={deleteDialogOpen}
+				onOpenChange={setDeleteDialogOpen}
+				ebook={selectedEbook}
+				onConfirm={handleConfirmDeleteEBook}
+				onCancel={handleCancelDeleteEBook}
+				isLoading={deleteEBookMutation.isPending}
 			/>
 		</div>
 	);

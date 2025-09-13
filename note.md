@@ -11,7 +11,7 @@
 7. kệ sách ẩn ngày tạo -> oke
 8. tên sách k phải là unique -> oke
 9. ebook: đang không edit được -> oke
-10. physical book: edit tất cả các trường
+10. physical book: edit tất cả các trường -> oke
 khi mượn sách, trạng thái phải là: "đã đặt mượn", không phải "đặt mượn"
 11. quản lý mượn trả sách: bổ sung search
 12. kiểm tra lại borrowrecord -> đang k cho mượn sách (chập chờn)
