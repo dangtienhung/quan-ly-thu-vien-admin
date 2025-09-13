@@ -1,21 +1,24 @@
-import { BooksAPI } from '@/apis/books';
-import { PhysicalCopiesAPI } from '@/apis/physical-copies';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
 import type {
 	CopyCondition,
 	CopyStatus,
 	CreatePhysicalCopyRequest,
+	PhysicalCopy,
+	UpdatePhysicalCopyRequest,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { toast } from 'sonner';
 import {
 	CreatePhysicalCopyDialog,
 	PhysicalDetailHeader,
 	PhysicalListCard,
 } from './components';
+
+import { BooksAPI } from '@/apis/books';
+import { PhysicalCopiesAPI } from '@/apis/physical-copies';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const PhysicalBookDetailPage = () => {
 	const { id } = useParams<{ id: string }>();
@@ -89,6 +92,36 @@ const PhysicalBookDetailPage = () => {
 		},
 	});
 
+	// Update physical copy mutation
+	const updatePhysicalCopyMutation = useMutation({
+		mutationFn: ({
+			copyId,
+			data,
+		}: {
+			copyId: string;
+			data: UpdatePhysicalCopyRequest;
+		}) => PhysicalCopiesAPI.update(copyId, data),
+		onSuccess: () => {
+			toast.success('Cập nhật bản sao thành công!');
+			queryClient.invalidateQueries({ queryKey: ['physical-copies-book', id] });
+		},
+		onError: (error: any) => {
+			toast.error(error.message || 'Có lỗi xảy ra khi cập nhật bản sao');
+		},
+	});
+
+	// Delete physical copy mutation
+	const deletePhysicalCopyMutation = useMutation({
+		mutationFn: (copyId: string) => PhysicalCopiesAPI.delete(copyId),
+		onSuccess: () => {
+			toast.success('Xóa bản sao thành công!');
+			queryClient.invalidateQueries({ queryKey: ['physical-copies-book', id] });
+		},
+		onError: (error: any) => {
+			toast.error(error.message || 'Có lỗi xảy ra khi xóa bản sao');
+		},
+	});
+
 	const handleCreatePhysicalCopy = async (data: CreatePhysicalCopyRequest) => {
 		createPhysicalCopyMutation.mutate(data);
 	};
@@ -99,6 +132,15 @@ const PhysicalBookDetailPage = () => {
 
 	const handleUpdateCondition = (copyId: string, condition: CopyCondition) => {
 		updateConditionMutation.mutate({ copyId, condition });
+	};
+
+	const handleEditPhysicalCopy = (updatedCopy: PhysicalCopy) => {
+		const { id: copyId, ...updateData } = updatedCopy;
+		updatePhysicalCopyMutation.mutate({ copyId, data: updateData });
+	};
+
+	const handleDeletePhysicalCopy = (copyId: string) => {
+		deletePhysicalCopyMutation.mutate(copyId);
 	};
 
 	const handleCreateNew = () => {
@@ -176,6 +218,8 @@ const PhysicalBookDetailPage = () => {
 				onCreateNew={handleCreateNew}
 				onUpdateStatus={handleUpdateStatus}
 				onUpdateCondition={handleUpdateCondition}
+				onEdit={handleEditPhysicalCopy}
+				onDelete={handleDeletePhysicalCopy}
 			/>
 
 			{/* Create Physical Copy Dialog */}

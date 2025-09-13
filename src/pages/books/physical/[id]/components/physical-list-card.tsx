@@ -1,16 +1,4 @@
-import {
-	AlertTriangle,
-	BookOpen,
-	Calendar,
-	CheckCircle,
-	Edit,
-	FileText,
-	MapPin,
-	Plus,
-	Settings,
-} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CopyCondition, CopyStatus, PhysicalCopy } from '@/types';
 import {
 	Dialog,
 	DialogContent,
@@ -33,16 +21,32 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
+import type { CopyCondition, CopyStatus, PhysicalCopy } from '@/types';
+import {
+	AlertTriangle,
+	BookOpen,
+	Calendar,
+	CheckCircle,
+	Edit,
+	FileText,
+	MapPin,
+	Plus,
+	Trash2,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { DeleteConfirmDialog } from './delete-confirm-dialog';
+import { EditPhysicalCopyDialog } from './edit-physical-copy-dialog';
 
 interface PhysicalListCardProps {
 	physicalCopies: PhysicalCopy[];
 	onCreateNew: () => void;
 	onUpdateStatus: (copyId: string, status: CopyStatus) => void;
 	onUpdateCondition: (copyId: string, condition: CopyCondition) => void;
+	onEdit: (copy: PhysicalCopy) => void;
+	onDelete: (copyId: string) => void;
 }
 
 export function PhysicalListCard({
@@ -50,6 +54,8 @@ export function PhysicalListCard({
 	onCreateNew,
 	onUpdateStatus,
 	onUpdateCondition,
+	onEdit,
+	onDelete,
 }: PhysicalListCardProps) {
 	const hasCopies = physicalCopies.length > 0;
 
@@ -57,6 +63,8 @@ export function PhysicalListCard({
 	const [openUpdateStatusDialog, setOpenUpdateStatusDialog] = useState(false);
 	const [openUpdateConditionDialog, setOpenUpdateConditionDialog] =
 		useState(false);
+	const [openEditDialog, setOpenEditDialog] = useState(false);
+	const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 	const [selectedCopy, setSelectedCopy] = useState<PhysicalCopy | null>(null);
 
 	const getStatusColor = (status: string) => {
@@ -196,6 +204,32 @@ export function PhysicalListCard({
 		setSelectedCopy(null);
 	};
 
+	const handleEditClick = (copy: PhysicalCopy) => {
+		setSelectedCopy(copy);
+		setOpenEditDialog(true);
+	};
+
+	const handleEditSubmit = (data: any) => {
+		if (selectedCopy) {
+			onEdit({ ...selectedCopy, ...data });
+			setOpenEditDialog(false);
+			setSelectedCopy(null);
+		}
+	};
+
+	const handleDeleteClick = (copy: PhysicalCopy) => {
+		setSelectedCopy(copy);
+		setOpenDeleteDialog(true);
+	};
+
+	const handleConfirmDelete = () => {
+		if (selectedCopy) {
+			onDelete(selectedCopy.id);
+			setOpenDeleteDialog(false);
+			setSelectedCopy(null);
+		}
+	};
+
 	return (
 		<>
 			<Card>
@@ -298,7 +332,15 @@ export function PhysicalListCard({
 										<TableCell className="text-right w-fit">
 											<div className="flex items-center space-x-2 justify-end">
 												<Button
-													variant="outline"
+													variant="ghost"
+													size="icon"
+													onClick={() => handleEditClick(copy)}
+													title="Chỉnh sửa bản sao"
+												>
+													<Edit className="h-4 w-4" />
+												</Button>
+												{/* <Button
+													variant="ghost"
 													size="icon"
 													onClick={() => handleUpdateStatusClick(copy)}
 													title="Cập nhật trạng thái"
@@ -306,12 +348,21 @@ export function PhysicalListCard({
 													<Settings className="h-4 w-4" />
 												</Button>
 												<Button
-													variant="outline"
+													variant="ghost"
 													size="icon"
 													onClick={() => handleUpdateConditionClick(copy)}
 													title="Cập nhật tình trạng"
 												>
 													<Edit className="h-4 w-4" />
+												</Button> */}
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => handleDeleteClick(copy)}
+													title="Xóa bản sao"
+													className="text-red-600 hover:text-red-700 hover:bg-red-50"
+												>
+													<Trash2 className="h-4 w-4" />
 												</Button>
 											</div>
 										</TableCell>
@@ -437,6 +488,22 @@ export function PhysicalListCard({
 					</div>
 				</DialogContent>
 			</Dialog>
+
+			{/* Edit Physical Copy Dialog */}
+			<EditPhysicalCopyDialog
+				open={openEditDialog}
+				onOpenChange={setOpenEditDialog}
+				physicalCopy={selectedCopy}
+				onSubmit={handleEditSubmit}
+			/>
+
+			{/* Delete Confirm Dialog */}
+			<DeleteConfirmDialog
+				open={openDeleteDialog}
+				onOpenChange={setOpenDeleteDialog}
+				physicalCopy={selectedCopy}
+				onConfirm={handleConfirmDelete}
+			/>
 		</>
 	);
 }

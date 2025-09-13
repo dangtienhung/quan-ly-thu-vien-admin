@@ -15,7 +15,8 @@ import {
 import type {
 	CopyCondition,
 	CopyStatus,
-	CreatePhysicalCopyRequest,
+	PhysicalCopy,
+	UpdatePhysicalCopyRequest,
 } from '@/types';
 import React, { useState } from 'react';
 
@@ -26,23 +27,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useActiveLocations } from '@/hooks/locations';
 
-interface CreatePhysicalCopyDialogProps {
+interface EditPhysicalCopyDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	bookId: string;
-	bookTitle?: string;
-	onSubmit: (data: CreatePhysicalCopyRequest) => void;
+	physicalCopy: PhysicalCopy | null;
+	onSubmit: (data: UpdatePhysicalCopyRequest) => void;
 	isLoading?: boolean;
 }
 
-export function CreatePhysicalCopyDialog({
+export function EditPhysicalCopyDialog({
 	open,
 	onOpenChange,
-	bookId,
-	bookTitle,
+	physicalCopy,
 	onSubmit,
 	isLoading = false,
-}: CreatePhysicalCopyDialogProps) {
+}: EditPhysicalCopyDialogProps) {
 	const { data: locations } = useActiveLocations();
 
 	const [formData, setFormData] = useState({
@@ -58,10 +57,31 @@ export function CreatePhysicalCopyDialog({
 		is_archived: false,
 	});
 
+	// Reset form when physicalCopy changes
+	React.useEffect(() => {
+		if (physicalCopy) {
+			setFormData({
+				barcode: physicalCopy.barcode,
+				status: physicalCopy.status,
+				current_condition: physicalCopy.current_condition,
+				condition_details: physicalCopy.condition_details || '',
+				purchase_date: physicalCopy.purchase_date
+					? new Date(physicalCopy.purchase_date).toISOString().split('T')[0]
+					: '',
+				purchase_price: physicalCopy.purchase_price,
+				location_id: physicalCopy.location?.id || '',
+				notes: physicalCopy.notes || '',
+				last_checkup_date: physicalCopy.last_checkup_date
+					? new Date(physicalCopy.last_checkup_date).toISOString().split('T')[0]
+					: '',
+				is_archived: physicalCopy.is_archived || false,
+			});
+		}
+	}, [physicalCopy]);
+
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		onSubmit({
-			book_id: bookId,
 			...formData,
 			purchase_price: Number(formData.purchase_price),
 		});
@@ -75,18 +95,24 @@ export function CreatePhysicalCopyDialog({
 	};
 
 	const resetForm = () => {
-		setFormData({
-			barcode: '',
-			status: 'available' as CopyStatus,
-			current_condition: 'new' as CopyCondition,
-			condition_details: '',
-			purchase_date: '',
-			purchase_price: 0,
-			location_id: '',
-			notes: '',
-			last_checkup_date: '',
-			is_archived: false,
-		});
+		if (physicalCopy) {
+			setFormData({
+				barcode: physicalCopy.barcode,
+				status: physicalCopy.status,
+				current_condition: physicalCopy.current_condition,
+				condition_details: physicalCopy.condition_details || '',
+				purchase_date: physicalCopy.purchase_date
+					? new Date(physicalCopy.purchase_date).toISOString().split('T')[0]
+					: '',
+				purchase_price: physicalCopy.purchase_price,
+				location_id: physicalCopy.location?.id || '',
+				notes: physicalCopy.notes || '',
+				last_checkup_date: physicalCopy.last_checkup_date
+					? new Date(physicalCopy.last_checkup_date).toISOString().split('T')[0]
+					: '',
+				is_archived: physicalCopy.is_archived || false,
+			});
+		}
 	};
 
 	const handleCancel = () => {
@@ -98,9 +124,10 @@ export function CreatePhysicalCopyDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Tạo Bản sao Vật lý mới</DialogTitle>
+					<DialogTitle>Chỉnh sửa Bản sao Vật lý</DialogTitle>
 					<DialogDescription>
-						Thêm bản sao vật lý cho sách "{bookTitle}"
+						Cập nhật thông tin bản sao "{physicalCopy?.barcode}" -{' '}
+						{physicalCopy?.book?.title}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -279,7 +306,7 @@ export function CreatePhysicalCopyDialog({
 							Hủy
 						</Button>
 						<Button type="submit" disabled={isLoading}>
-							{isLoading ? 'Đang tạo...' : 'Tạo Bản sao'}
+							{isLoading ? 'Đang cập nhật...' : 'Cập nhật'}
 						</Button>
 					</div>
 				</form>
