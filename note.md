@@ -9,7 +9,7 @@
 5. nxb email là required, còn lại là optional -> oke
 6. quản lý thể loại thiển thị thành expand, ẩn ngày tạo, đồng bộ ui -> oke
 7. kệ sách ẩn ngày tạo -> oke
-8. tên sách k phải là unique
+8. tên sách k phải là unique -> oke
 9. ebook: đang không edit được
 10. physical book: edit tất cả các trường
 khi mượn sách, trạng thái phải là: "đã đặt mượn", không phải "đặt mượn"
