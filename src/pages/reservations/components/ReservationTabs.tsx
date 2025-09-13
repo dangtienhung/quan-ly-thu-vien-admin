@@ -1,22 +1,15 @@
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card';
+import { CardDescription, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type {
 	Reservation,
 	ReservationExpiringSoonItem,
 } from '@/types/reservations';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createSearchParams, useNavigate } from 'react-router-dom';
 
-import { ExpiringSoonTable } from './ExpiringSoonTable';
+import { useReservationStatsByStatus } from '@/hooks/reservations';
+import { useQueryParams } from '@/hooks/useQueryParam';
 import { ReservationFilters } from './ReservationFilters';
 import { ReservationTable } from './ReservationTable';
-import { useQueryParams } from '@/hooks/useQueryParam';
-import { useReservationStatsByStatus } from '@/hooks/reservations';
 
 interface ReservationTabsProps {
 	activeTab: string;
@@ -73,7 +66,6 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 
 	// Filter reservations based on selected status
 	const filteredReservations = reservations.filter((reservation) => {
-		if (selectedStatus === 'all') return true;
 		return reservation.status === selectedStatus;
 	});
 
@@ -82,15 +74,17 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 
 	// Get status counts for tabs từ API
 	const statusCounts = {
-		all: statusStats?.total || 0,
 		pending: statusStats?.pending || 0,
 		fulfilled: statusStats?.fulfilled || 0,
 		cancelled: statusStats?.cancelled || 0,
 		expired: statusStats?.expired || 0,
-		expiring: statusStats?.expiringSoon || 0,
 	};
 
 	const handleTabChange = (value: string) => {
+		// Cập nhật state trong component cha
+		onStatusChange(value);
+
+		// Cập nhật URL
 		navigate({
 			pathname: '/reservations',
 			search: createSearchParams({
@@ -103,17 +97,11 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 
 	return (
 		<Tabs
-			value={queryParams.status || 'all'}
+			value={queryParams.status || 'pending'}
 			onValueChange={handleTabChange}
 			className="space-y-4"
 		>
-			<TabsList className="grid w-full grid-cols-6 h-full">
-				<TabsTrigger value="all" className="flex items-center gap-2">
-					Tất cả
-					<span className="ml-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-						{statusCounts.all}
-					</span>
-				</TabsTrigger>
+			<TabsList className="grid w-full grid-cols-4 h-full">
 				<TabsTrigger value="pending" className="flex items-center gap-2">
 					Đang chờ
 					<span className="ml-1 rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-600">
@@ -138,12 +126,6 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 						{statusCounts.expired}
 					</span>
 				</TabsTrigger>
-				<TabsTrigger value="expiring" className="flex items-center gap-2">
-					Sắp hết hạn
-					<span className="ml-1 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-600">
-						{statusCounts.expiring}
-					</span>
-				</TabsTrigger>
 			</TabsList>
 
 			{/* Search and Filter */}
@@ -155,41 +137,15 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 			/>
 
 			{/* Tab Content */}
-			{/* Tất cả Đặt Trước */}
-			<TabsContent value="all" className="space-y-4">
-				<Card>
-					<CardHeader>
-						<CardTitle>Danh sách Tất cả Đặt Trước</CardTitle>
-						<CardDescription>
-							Quản lý tất cả các yêu cầu đặt trước sách
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<ReservationTable
-							reservations={filteredReservations}
-							isLoading={isLoadingReservations}
-							onFulfill={onFulfill}
-							onCancel={onCancel}
-							onDelete={onDelete}
-							onViewDetails={onViewDetails}
-							onExpire={onExpire}
-							isFulfillPending={isFulfillPending || isApproving}
-							isCancelPending={isCancelPending}
-							isDeletePending={isDeletePending}
-							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
-						/>
-					</CardContent>
-				</Card>
-			</TabsContent>
 
 			{/* Đang chờ */}
 			<TabsContent value="pending" className="space-y-4">
-				<Card>
-					<CardHeader>
+				<div>
+					<div>
 						<CardTitle>Đặt Trước Đang Chờ</CardTitle>
 						<CardDescription>Những đặt trước đang chờ xử lý</CardDescription>
-					</CardHeader>
-					<CardContent>
+					</div>
+					<div>
 						<ReservationTable
 							reservations={filteredReservations}
 							isLoading={isLoadingReservations}
@@ -203,20 +159,20 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 							isDeletePending={isDeletePending}
 							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
 						/>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 			</TabsContent>
 
 			{/* Đã thực hiện */}
 			<TabsContent value="fulfilled" className="space-y-4">
-				<Card>
-					<CardHeader>
+				<div>
+					<div>
 						<CardTitle>Đặt Trước Đã Thực Hiện</CardTitle>
 						<CardDescription>
 							Những đặt trước đã được thực hiện thành công
 						</CardDescription>
-					</CardHeader>
-					<CardContent>
+					</div>
+					<div>
 						<ReservationTable
 							reservations={filteredReservations}
 							isLoading={isLoadingReservations}
@@ -230,18 +186,18 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 							isDeletePending={isDeletePending}
 							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
 						/>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 			</TabsContent>
 
 			{/* Đã hủy */}
 			<TabsContent value="cancelled" className="space-y-4">
-				<Card>
-					<CardHeader>
+				<div>
+					<div>
 						<CardTitle>Đặt Trước Đã Hủy</CardTitle>
 						<CardDescription>Những đặt trước đã bị hủy</CardDescription>
-					</CardHeader>
-					<CardContent>
+					</div>
+					<div>
 						<ReservationTable
 							reservations={filteredReservations}
 							isLoading={isLoadingReservations}
@@ -255,18 +211,18 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 							isDeletePending={isDeletePending}
 							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
 						/>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 			</TabsContent>
 
 			{/* Hết hạn */}
 			<TabsContent value="expired" className="space-y-4">
-				<Card>
-					<CardHeader>
+				<div>
+					<div>
 						<CardTitle>Đặt Trước Hết Hạn</CardTitle>
 						<CardDescription>Những đặt trước đã hết hạn</CardDescription>
-					</CardHeader>
-					<CardContent>
+					</div>
+					<div>
 						<ReservationTable
 							reservations={filteredReservations}
 							isLoading={isLoadingReservations}
@@ -280,31 +236,8 @@ export const ReservationTabs: React.FC<ReservationTabsProps> = ({
 							isDeletePending={isDeletePending}
 							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
 						/>
-					</CardContent>
-				</Card>
-			</TabsContent>
-
-			{/* Sắp hết hạn */}
-			<TabsContent value="expiring" className="space-y-4">
-				<Card>
-					<CardHeader>
-						<CardTitle>Đặt Trước Sắp Hết Hạn</CardTitle>
-						<CardDescription>
-							Những đặt trước sẽ hết hạn trong 1 ngày tới
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<ExpiringSoonTable
-							reservations={expiringSoonReservations}
-							onFulfill={onFulfill}
-							onCancel={onCancel}
-							onViewDetails={onViewDetailsExpiring}
-							isFulfillPending={isFulfillPending || isApproving}
-							isCancelPending={isCancelPending}
-							isBlockedByExpiredReservations={isBlockedByExpiredReservations}
-						/>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 			</TabsContent>
 		</Tabs>
 	);

@@ -1,16 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
 import {
-	CreateReservationDialog,
-	DeleteReservationDialog,
-	ReservationDetailsDialog,
-	ReservationStats,
-	ReservationTabs,
-} from './components';
-import type {
-	Reservation,
-	ReservationExpiringSoonItem,
-} from '@/types/reservations';
-import {
 	useApproveBorrowRecord,
 	useBorrowRecordsByStatus,
 } from '@/hooks/borrow-records';
@@ -24,22 +13,33 @@ import {
 	useReservations,
 	useReservationsExpiringSoon,
 } from '@/hooks/reservations';
+import type {
+	Reservation,
+	ReservationExpiringSoonItem,
+} from '@/types/reservations';
 import { useEffect, useState } from 'react';
+import {
+	CreateReservationDialog,
+	DeleteReservationDialog,
+	ReservationDetailsDialog,
+	ReservationStats,
+	ReservationTabs,
+} from './components';
 
-import { BorrowRecordsAPI } from '@/apis/borrow-records';
 import { NotificationsAPI } from '@/apis';
+import { BorrowRecordsAPI } from '@/apis/borrow-records';
 import { PhysicalCopiesAPI } from '@/apis/physical-copies';
 import { ReservationsAPI } from '@/apis/reservations';
-import { toast } from 'sonner';
 import { useExpireReservation } from '@/hooks/reservations/use-exprice-revations';
+import { useQueryParams } from '@/hooks/useQueryParam';
 import { useGetProfile } from '@/hooks/users/use-get-profile';
 import { useQueryClient } from '@tanstack/react-query';
-import { useQueryParams } from '@/hooks/useQueryParam';
+import { toast } from 'sonner';
 
 export default function ReservationsPage() {
 	const [searchQuery, setSearchQuery] = useState('');
-	const [selectedStatus, setSelectedStatus] = useState<string>('all');
-	const [activeTab, setActiveTab] = useState('all');
+	const [selectedStatus, setSelectedStatus] = useState<string>('pending');
+	const [activeTab, setActiveTab] = useState('pending');
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [reservationToDelete, setReservationToDelete] =
@@ -51,7 +51,7 @@ export default function ReservationsPage() {
 
 	const { data: user } = useGetProfile();
 	const queryParams = useQueryParams();
-	const currentStatus = queryParams.status || 'all';
+	const currentStatus = queryParams.status || 'pending';
 
 	const queryClient = useQueryClient();
 	const { approveBorrowRecord, isApproving } = useApproveBorrowRecord();
@@ -95,9 +95,9 @@ export default function ReservationsPage() {
 	const deleteReservationMutation = useDeleteReservation();
 	const expireReservationMutation = useExpireReservation();
 
-	// Logic kiểm tra đặt trước quá hạn - chỉ check khi ở tab "all" hoặc "pending"
+	// Logic kiểm tra đặt trước quá hạn - chỉ check khi ở tab "pending"
 	const hasExpiredReservations =
-		(currentStatus === 'all' || currentStatus === 'pending') &&
+		currentStatus === 'pending' &&
 		(statusStats?.expired || 0) > 0 &&
 		reservations.some(
 			(reservation) =>
@@ -574,6 +574,18 @@ export default function ReservationsPage() {
 			setActiveTab('expired');
 		}
 	}, [hasExpiredReservations, activeTab]);
+
+	// Set default tab to pending if no status in URL
+	useEffect(() => {
+		if (!queryParams.status) {
+			setActiveTab('pending');
+			setSelectedStatus('pending');
+		} else {
+			// Đồng bộ selectedStatus với URL
+			setSelectedStatus(queryParams.status);
+			setActiveTab(queryParams.status);
+		}
+	}, [queryParams.status]);
 
 	return (
 		<div className="space-y-6">

@@ -13,7 +13,7 @@
 9. ebook: đang không edit được -> oke
 10. physical book: edit tất cả các trường -> oke
 khi mượn sách, trạng thái phải là: "đã đặt mượn", không phải "đặt mượn"
-11. quản lý mượn trả sách: bổ sung search
+11. quản lý mượn trả sách: bổ sung search -> oke
 12. kiểm tra lại borrowrecord -> đang k cho mượn sách (chập chờn)
-13. đặt trước: bỏ tab tất cả, sắp hết hạn
-  - tất cả các button khi ấn đều phải hiển thị popconfirm xác nhận
+13. đặt trước: bỏ tab tất cả, sắp hết hạn -> oke
+  - tất cả các button khi ấn đều phải hiển thị popconfirm xác nhận -> oke
