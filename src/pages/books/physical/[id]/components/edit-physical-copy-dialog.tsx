@@ -185,7 +185,7 @@ export function EditPhysicalCopyDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="purchase_price">Giá sách (VND) *</Label>
+							<Label htmlFor="purchase_price">Giá bìa (VND) *</Label>
 							<Input
 								id="purchase_price"
 								type="number"
@@ -271,7 +271,7 @@ export function EditPhysicalCopyDialog({
 					</div>
 
 					{/* Details and Notes */}
-					<div className="space-y-2">
+					{/* <div className="space-y-2">
 						<Label htmlFor="condition_details">Chi tiết tình trạng</Label>
 						<Textarea
 							id="condition_details"
@@ -282,7 +282,7 @@ export function EditPhysicalCopyDialog({
 							placeholder="Mô tả chi tiết về tình trạng bản sao..."
 							rows={3}
 						/>
-					</div>
+					</div> */}
 
 					<div className="space-y-2">
 						<Label htmlFor="notes">Ghi chú</Label>

@@ -74,10 +74,10 @@ export function EBookListCard({
 							<Download className="h-5 w-5" />
 							<span>Danh sách EBook ({ebooks.length})</span>
 						</div>
-						<Button onClick={onCreateNew}>
+						{/* <Button onClick={onCreateNew}>
 							<Plus className="mr-2 h-4 w-4" />
 							Tạo EBook mới
-						</Button>
+						</Button> */}
 					</CardTitle>
 				</CardHeader>
 				<CardContent>

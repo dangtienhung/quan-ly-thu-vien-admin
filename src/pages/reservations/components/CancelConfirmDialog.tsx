@@ -72,7 +72,7 @@ export const CancelConfirmDialog: React.FC<CancelConfirmDialogProps> = ({
 									{reservation.book?.title || 'Không có tên sách'}
 								</h4>
 								<p className="text-sm text-gray-600">
-									Độc giả:{' '}
+									Độc giả: {reservation.reader?.cardNumber || ''} -{' '}
 									{reservation.reader?.fullName || 'Không có tên độc giả'}
 								</p>
 								<p className="text-sm text-gray-600">

@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import {
 	Form,
 	FormControl,
@@ -7,7 +6,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import {
 	Select,
 	SelectContent,
@@ -15,6 +13,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { IconUpload, IconX } from '@tabler/icons-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAllBookCategories } from '@/hooks/book-categories';
 import { useAllGradeLevels } from '@/hooks/grade-levels';
@@ -24,7 +26,6 @@ import type { CreateBookRequest } from '@/types/books';
 import type { Category } from '@/types/categories';
 import type { Publisher } from '@/types/publishers';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconUpload, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -303,6 +304,91 @@ const CreateBookForm = ({
 
 				<FormField
 					control={form.control}
+					name="publisher_id"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Nhà xuất bản *</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Chọn nhà xuất bản" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									{publishers.map((publisher) => (
+										<SelectItem key={publisher.id} value={publisher.id}>
+											{publisher.publisherName}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="author_ids"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Tác giả</FormLabel>
+							<Select
+								onValueChange={(value) => {
+									const currentIds = field.value || [];
+									if (!currentIds.includes(value)) {
+										field.onChange([...currentIds, value]);
+									}
+								}}
+							>
+								<FormControl>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Chọn tác giả" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									{authors.map((author) => (
+										<SelectItem key={author.id} value={author.id}>
+											{author.author_name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{field.value && field.value.length > 0 && (
+								<div className="mt-2 space-y-1">
+									{field.value.map((authorId) => {
+										const author = authors.find((a) => a.id === authorId);
+										return (
+											<div
+												key={authorId}
+												className="flex items-center justify-between bg-muted p-2 rounded"
+											>
+												<span className="text-sm">{author?.author_name}</span>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														field.onChange(
+															field.value?.filter((id) => id !== authorId)
+														);
+													}}
+													className="h-6 w-6 p-0"
+												>
+													<IconX className="h-3 w-3" />
+												</Button>
+											</div>
+										);
+									})}
+								</div>
+							)}
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
 					name="book_type"
 					render={({ field }) => (
 						<FormItem>
@@ -351,35 +437,10 @@ const CreateBookForm = ({
 
 				<FormField
 					control={form.control}
-					name="publisher_id"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Nhà xuất bản *</FormLabel>
-							<Select onValueChange={field.onChange} value={field.value}>
-								<FormControl>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder="Chọn nhà xuất bản" />
-									</SelectTrigger>
-								</FormControl>
-								<SelectContent>
-									{publishers.map((publisher) => (
-										<SelectItem key={publisher.id} value={publisher.id}>
-											{publisher.publisherName}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
 					name="category_id"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Thể loại *</FormLabel>
+							<FormLabel>Thể loại (bỏ) *</FormLabel>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger className="w-full">
@@ -405,7 +466,7 @@ const CreateBookForm = ({
 					name="main_category_id"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Thể loại chính (tùy chọn)</FormLabel>
+							<FormLabel>Thể loại *</FormLabel>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger className="w-full">
@@ -469,66 +530,6 @@ const CreateBookForm = ({
 													onClick={() =>
 														field.onChange(field.value?.filter((x) => x !== id))
 													}
-													className="h-6 w-6 p-0"
-												>
-													<IconX className="h-3 w-3" />
-												</Button>
-											</div>
-										);
-									})}
-								</div>
-							)}
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="author_ids"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Tác giả</FormLabel>
-							<Select
-								onValueChange={(value) => {
-									const currentIds = field.value || [];
-									if (!currentIds.includes(value)) {
-										field.onChange([...currentIds, value]);
-									}
-								}}
-							>
-								<FormControl>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder="Chọn tác giả" />
-									</SelectTrigger>
-								</FormControl>
-								<SelectContent>
-									{authors.map((author) => (
-										<SelectItem key={author.id} value={author.id}>
-											{author.author_name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							{field.value && field.value.length > 0 && (
-								<div className="mt-2 space-y-1">
-									{field.value.map((authorId) => {
-										const author = authors.find((a) => a.id === authorId);
-										return (
-											<div
-												key={authorId}
-												className="flex items-center justify-between bg-muted p-2 rounded"
-											>
-												<span className="text-sm">{author?.author_name}</span>
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														field.onChange(
-															field.value?.filter((id) => id !== authorId)
-														);
-													}}
 													className="h-6 w-6 p-0"
 												>
 													<IconX className="h-3 w-3" />
