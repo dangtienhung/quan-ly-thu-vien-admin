@@ -8,12 +8,12 @@ export const useDashboardTabs = () => {
 	const tab = queryParams.get('tab');
 
 	// State cho tab
-	const [activeTab, setActiveTab] = useState(tab || 'overview');
+	const [activeTab, setActiveTab] = useState(tab || 'analytics');
 	const [isInitialLoad, setIsInitialLoad] = useState(true);
 
 	// Đồng bộ activeTab với URL params khi component mount
 	useEffect(() => {
-		setActiveTab(tab || 'overview');
+		setActiveTab(tab || 'analytics');
 		setIsInitialLoad(false);
 	}, [tab]);
 
