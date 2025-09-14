@@ -8,9 +8,9 @@ import type {
 	BorrowRecordReaderQuery,
 	BorrowRecordResponse,
 	BorrowRecordSearchQuery,
-	BorrowRecordsResponse,
 	BorrowRecordStatsResponse,
 	BorrowRecordStatusQuery,
+	BorrowRecordsResponse,
 	CreateBorrowRecordRequest,
 	RejectBorrowRequest,
 	RenewBookRequest,
@@ -22,6 +22,7 @@ import type {
 
 import _ from 'lodash';
 import instance from '../configs/instances';
+
 export const BorrowRecordsAPI = {
 	// Create a new borrow record
 	create: async (
@@ -123,6 +124,12 @@ export const BorrowRecordsAPI = {
 	// Get borrow records statistics
 	getStats: async (): Promise<BorrowRecordStatsResponse> => {
 		const res = await instance.get('/api/borrow-records/stats');
+		return res.data;
+	},
+
+	// Get overdue statistics
+	getOverdueStats: async (): Promise<unknown> => {
+		const res = await instance.get('/api/borrow-records/stats/overdue');
 		return res.data;
 	},
 

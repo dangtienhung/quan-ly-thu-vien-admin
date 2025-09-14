@@ -64,11 +64,7 @@ export default function ReservationsPage() {
 	});
 
 	// Hook cho filter theo status
-	const {
-		borrowRecords: statusRecords,
-		meta: statusMeta,
-		isLoading: isLoadingStatus,
-	} = useBorrowRecordsByStatus({
+	const { borrowRecords: statusRecords } = useBorrowRecordsByStatus({
 		params: {
 			status: 'pending_approval',
 			page: 1,
@@ -85,7 +81,7 @@ export default function ReservationsPage() {
 		});
 
 	// Fetch statistics
-	const { stats } = useReservationStats();
+	const { data: stats } = useReservationStats();
 	const { stats: statusStats } = useReservationStatsByStatus();
 
 	// Mutations
@@ -147,7 +143,7 @@ export default function ReservationsPage() {
 				reason: `Đánh dấu hết hạn bởi thủ thư ${user?.username}`,
 			},
 			{
-				onSuccess: async (response) => {
+				onSuccess: async () => {
 					toast.success('Đánh dấu đặt trước hết hạn thành công!');
 
 					// Tìm reservation đã bị expire để lấy thông tin
@@ -262,7 +258,7 @@ export default function ReservationsPage() {
 		);
 	};
 
-	const handleCreateReservation = (data: any) => {
+	const handleCreateReservation = (data: unknown) => {
 		// Chặn tạo đặt trước khi còn đặt trước quá hạn
 		if (isBlockedByExpiredReservations) {
 			toast.error('Không thể tạo đặt trước mới!', {
@@ -271,7 +267,8 @@ export default function ReservationsPage() {
 			return;
 		}
 
-		createReservationMutation.mutate(data, {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		createReservationMutation.mutate(data as unknown as any, {
 			onSuccess: () => {
 				setShowCreateDialog(false);
 				toast.success('Tạo đặt trước thành công!');
@@ -447,7 +444,7 @@ export default function ReservationsPage() {
 				reason: data.reason || 'Hủy bởi thủ thư',
 			},
 			{
-				onSuccess: async (response) => {
+				onSuccess: async () => {
 					toast.success('Đã hủy đặt trước thành công!');
 
 					// Tìm reservation đã bị hủy để lấy thông tin
@@ -604,7 +601,8 @@ export default function ReservationsPage() {
 			</div>
 
 			{/* Statistics Cards */}
-			<ReservationStats stats={stats} />
+			{/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+			<ReservationStats stats={stats as unknown as any} />
 
 			{/* Warning Banner khi có đặt trước quá hạn */}
 			{hasExpiredReservations && (

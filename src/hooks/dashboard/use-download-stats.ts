@@ -1,6 +1,12 @@
 import { useBookStats } from '@/hooks/books/use-book-stats';
+import { useBorrowStats } from '@/hooks/borrow-records/use-borrow-stats';
+import { useFinesStats } from '@/hooks/fines/use-fines-stats';
+import { useReservationStats } from '@/hooks/reservations/use-reservation-stats';
 import { useUserStats } from '@/hooks/users/use-user-stats';
 import type { BookStatisticsDto } from '@/types/book.type';
+import type { BorrowRecordStatsDto } from '@/types/borrow-records.type';
+import type { FinesStatsDto } from '@/types/fines.type';
+import type { ReservationStatsDto } from '@/types/reservations.type';
 import type { UserStatsDto } from '@/types/user.type';
 import { useState } from 'react';
 
@@ -8,6 +14,9 @@ export const useDownloadStats = () => {
 	const [isDownloading, setIsDownloading] = useState(false);
 	const { data: userStats } = useUserStats();
 	const { data: bookStats } = useBookStats();
+	const { data: borrowStats } = useBorrowStats();
+	const { data: reservationStats } = useReservationStats();
+	const { data: finesStats } = useFinesStats();
 
 	const downloadUserStatsPDF = async () => {
 		if (!userStats) return;
@@ -47,6 +56,28 @@ export const useDownloadStats = () => {
 		}
 	};
 
+	const downloadAnalyticsPDF = async () => {
+		if (!borrowStats || !reservationStats || !finesStats) return;
+
+		setIsDownloading(true);
+		try {
+			// Tạo nội dung HTML cho PDF
+			const htmlContent = generateAnalyticsHTML(
+				borrowStats as unknown as BorrowRecordStatsDto,
+				reservationStats as unknown as ReservationStatsDto,
+				finesStats as unknown as FinesStatsDto
+			);
+
+			// Tạo PDF từ HTML
+			await generatePDF(htmlContent, 'thong-ke-muon-tra.pdf');
+		} catch (error) {
+			console.error('Error generating PDF:', error);
+			alert('Có lỗi xảy ra khi tạo file PDF');
+		} finally {
+			setIsDownloading(false);
+		}
+	};
+
 	const downloadOverviewPDF = async () => {
 		setIsDownloading(true);
 		try {
@@ -70,6 +101,9 @@ export const useDownloadStats = () => {
 				break;
 			case 'books-stats':
 				await downloadBookStatsPDF();
+				break;
+			case 'analytics':
+				await downloadAnalyticsPDF();
 				break;
 			case 'overview':
 				await downloadOverviewPDF();
@@ -380,6 +414,201 @@ const generateBookStatsHTML = (stats: BookStatisticsDto): string => {
 									)
 									.join('')
 							: '<tr><td colspan="5" style="text-align: center; color: #6b7280;">Chưa có dữ liệu thể loại</td></tr>'
+					}
+				</table>
+			</div>
+
+			<div class="footer">
+				<p>Báo cáo được tạo tự động bởi hệ thống quản lý thư viện</p>
+				<p>Thời gian tạo: ${new Date().toLocaleString('vi-VN')}</p>
+			</div>
+		</body>
+		</html>
+	`;
+};
+
+// Helper function để tạo HTML cho thống kê mượn trả
+const generateAnalyticsHTML = (
+	borrowStats: BorrowRecordStatsDto,
+	reservationStats: ReservationStatsDto,
+	finesStats: FinesStatsDto
+): string => {
+	const currentDate = new Date().toLocaleDateString('vi-VN');
+
+	return `
+		<!DOCTYPE html>
+		<html lang="vi">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Thống kê mượn trả</title>
+			<style>
+				body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+				.header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #16ae5b; padding-bottom: 20px; }
+				.school-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+				.school-name { font-size: 18px; font-weight: bold; color: #16ae5b; margin-bottom: 5px; }
+				.title { font-size: 24px; font-weight: bold; color: #16ae5b; margin-bottom: 10px; }
+				.subtitle { font-size: 14px; color: #6b7280; }
+				.section { margin-bottom: 25px; }
+				.section-title { font-size: 18px; font-weight: bold; color: #374151; margin-bottom: 15px; border-left: 4px solid #16ae5b; padding-left: 10px; }
+				.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px; }
+				.stat-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; }
+				.stat-title { font-size: 14px; color: #64748b; margin-bottom: 5px; }
+				.stat-value { font-size: 24px; font-weight: bold; color: #16ae5b; }
+				.table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+				.table th, .table td { border: 1px solid #d1d5db; padding: 10px; text-align: left; }
+				.table th { background: #f0fdf4; font-weight: bold; color: #16ae5b; }
+				.footer { margin-top: 30px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 15px; }
+			</style>
+		</head>
+		<body>
+			<div class="header">
+				<img src="/logo.jpg" alt="Logo trường" class="school-logo" />
+				<div class="school-name">Trường THPT Hoài Đức A</div>
+				<div class="title">BÁO CÁO THỐNG KÊ MƯỢN TRẢ</div>
+				<div class="subtitle">Ngày tạo: ${currentDate}</div>
+			</div>
+
+			<div class="section">
+				<div class="section-title">Tổng quan mượn sách</div>
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-title">Tổng mượn sách</div>
+						<div class="stat-value">${formatValue(borrowStats.total)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Đang mượn</div>
+						<div class="stat-value">${formatValue(borrowStats.activeLoans)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Chờ phê duyệt</div>
+						<div class="stat-value">${formatValue(borrowStats.pendingApproval)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Quá hạn</div>
+						<div class="stat-value">${formatValue(borrowStats.overdueLoans)}</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<div class="section-title">Tổng quan đặt trước</div>
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-title">Tổng đặt trước</div>
+						<div class="stat-value">${formatValue(reservationStats.total)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Chờ xử lý</div>
+						<div class="stat-value">${formatValue(reservationStats.pending)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Đã thực hiện</div>
+						<div class="stat-value">${formatValue(reservationStats.fulfilled)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Sắp hết hạn</div>
+						<div class="stat-value">${formatValue(reservationStats.expiringSoon)}</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<div class="section-title">Tổng quan phạt</div>
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-title">Tổng tiền phạt</div>
+						<div class="stat-value">${
+							finesStats.totalAmount
+								? `${finesStats.totalAmount.toLocaleString('vi-VN')} VNĐ`
+								: '0 VNĐ'
+						}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Chưa thanh toán</div>
+						<div class="stat-value">${formatValue(finesStats.unpaid)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Đã thanh toán</div>
+						<div class="stat-value">${formatValue(finesStats.paid)}</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-title">Được miễn</div>
+						<div class="stat-value">${formatValue(finesStats.waived)}</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<div class="section-title">Phân bố trạng thái mượn sách</div>
+				<table class="table">
+					<tr>
+						<th>Trạng thái</th>
+						<th>Số lượng</th>
+						<th>Tỷ lệ</th>
+					</tr>
+					${
+						borrowStats.byStatus && borrowStats.byStatus.length > 0
+							? borrowStats.byStatus
+									.map(
+										(status) => `
+							<tr>
+								<td>${
+									status.status === 'borrowed'
+										? 'Đang mượn'
+										: status.status === 'returned'
+										? 'Đã trả'
+										: status.status === 'overdue'
+										? 'Quá hạn'
+										: status.status === 'renewed'
+										? 'Gia hạn'
+										: status.status === 'pending_approval'
+										? 'Chờ phê duyệt'
+										: status.status
+								}</td>
+								<td>${formatValue(status.count)}</td>
+								<td>${calculatePercentage(status.count || 0, borrowStats.total || 0)}</td>
+							</tr>
+						`
+									)
+									.join('')
+							: '<tr><td colspan="3" style="text-align: center; color: #6b7280;">Chưa có dữ liệu</td></tr>'
+					}
+				</table>
+			</div>
+
+			<div class="section">
+				<div class="section-title">Phân bố trạng thái đặt trước</div>
+				<table class="table">
+					<tr>
+						<th>Trạng thái</th>
+						<th>Số lượng</th>
+						<th>Tỷ lệ</th>
+					</tr>
+					${
+						reservationStats.byStatus && reservationStats.byStatus.length > 0
+							? reservationStats.byStatus
+									.map(
+										(status) => `
+							<tr>
+								<td>${
+									status.status === 'pending'
+										? 'Chờ xử lý'
+										: status.status === 'fulfilled'
+										? 'Đã thực hiện'
+										: status.status === 'cancelled'
+										? 'Đã hủy'
+										: status.status === 'expired'
+										? 'Hết hạn'
+										: status.status
+								}</td>
+								<td>${formatValue(status.count)}</td>
+								<td>${calculatePercentage(status.count || 0, reservationStats.total || 0)}</td>
+							</tr>
+						`
+									)
+									.join('')
+							: '<tr><td colspan="3" style="text-align: center; color: #6b7280;">Chưa có dữ liệu</td></tr>'
 					}
 				</table>
 			</div>

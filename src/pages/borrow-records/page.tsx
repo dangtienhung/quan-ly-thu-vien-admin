@@ -78,7 +78,7 @@ export default function BorrowRecordsPage() {
 
 	// Hooks for different data sources
 	const { stats } = useBorrowRecordsStats();
-	``;
+
 	// Hook cho filter theo status
 	const {
 		borrowRecords: statusRecords,
@@ -88,6 +88,7 @@ export default function BorrowRecordsPage() {
 		params: borrowRecordStatus,
 		enabled: true, // Luôn enable để phản ứng với thay đổi params
 	});
+	console.log('🚀 ~ BorrowRecordsPage ~ statusRecords:', statusRecords);
 
 	// Mutation hooks
 	const { createBorrowRecord, isCreating } = useCreateBorrowRecord();

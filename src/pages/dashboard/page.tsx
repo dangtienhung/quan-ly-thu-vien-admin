@@ -12,6 +12,7 @@ import { useDashboardTabs } from '@/hooks/dashboard/use-dashboard-tabs';
 import { useDownloadStats } from '@/hooks/dashboard/use-download-stats';
 import { useState } from 'react';
 import { BookStats } from './components/book-stats';
+import { BorrowAnalytics } from './components/borrow-analytics';
 import { DownloadConfirmDialog } from './components/download-confirm-dialog';
 import { Overview } from './components/overview';
 import { RecentSales } from './components/recent-sales';
@@ -51,9 +52,7 @@ export default function Dashboard() {
 				<div className="w-full overflow-x-auto pb-2">
 					<TabsList>
 						<TabsTrigger value="overview">Tổng quan</TabsTrigger>
-						<TabsTrigger value="analytics" disabled>
-							Thống kê mượn trả
-						</TabsTrigger>
+						<TabsTrigger value="analytics">Thống kê mượn trả</TabsTrigger>
 						<TabsTrigger value="books-stats">Thống kê sách</TabsTrigger>
 						<TabsTrigger value="users-stats">Người dùng</TabsTrigger>
 					</TabsList>
@@ -183,6 +182,9 @@ export default function Dashboard() {
 							</CardContent>
 						</Card>
 					</div>
+				</TabsContent>
+				<TabsContent value="analytics" className="space-y-4">
+					<BorrowAnalytics />
 				</TabsContent>
 				<TabsContent value="books-stats" className="space-y-4">
 					<BookStats />
