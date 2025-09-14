@@ -10,6 +10,7 @@ import type {
 } from '../types';
 
 import instance from '../configs/instances';
+import type { BookStatisticsDto } from '../types/book.type';
 
 export const BooksAPI = {
 	// Get all books with pagination
@@ -81,6 +82,12 @@ export const BooksAPI = {
 	// Search books
 	search: async (params: BookSearchQuery): Promise<BooksResponse> => {
 		const res = await instance.get('/api/books/search', { params });
+		return res.data;
+	},
+
+	// Get book statistics
+	getStatistics: async (): Promise<BookStatisticsDto> => {
+		const res = await instance.get('/api/books/statistics');
 		return res.data;
 	},
 };

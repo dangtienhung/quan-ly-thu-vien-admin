@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useDashboardTabs } from '@/hooks/dashboard/use-dashboard-tabs';
 import { useDownloadStats } from '@/hooks/dashboard/use-download-stats';
 import { useState } from 'react';
+import { BookStats } from './components/book-stats';
 import { DownloadConfirmDialog } from './components/download-confirm-dialog';
 import { Overview } from './components/overview';
 import { RecentSales } from './components/recent-sales';
@@ -53,9 +54,7 @@ export default function Dashboard() {
 						<TabsTrigger value="analytics" disabled>
 							Thống kê mượn trả
 						</TabsTrigger>
-						<TabsTrigger value="reports" disabled>
-							Thống kê sách
-						</TabsTrigger>
+						<TabsTrigger value="books-stats">Thống kê sách</TabsTrigger>
 						<TabsTrigger value="users-stats">Người dùng</TabsTrigger>
 					</TabsList>
 				</div>
@@ -184,6 +183,9 @@ export default function Dashboard() {
 							</CardContent>
 						</Card>
 					</div>
+				</TabsContent>
+				<TabsContent value="books-stats" className="space-y-4">
+					<BookStats />
 				</TabsContent>
 				<TabsContent value="users-stats" className="space-y-4">
 					<UserStats />

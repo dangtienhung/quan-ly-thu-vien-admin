@@ -8,7 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Download, FileText, Users } from 'lucide-react';
+import { BookOpen, Download, FileText, Users } from 'lucide-react';
 
 interface DownloadConfirmDialogProps {
 	open: boolean;
@@ -35,11 +35,19 @@ export const DownloadConfirmDialog = ({
 					icon: <Users className="h-6 w-6 text-blue-600" />,
 					fileName: 'thong-ke-nguoi-dung.pdf',
 				};
+			case 'books-stats':
+				return {
+					title: 'Xuất thống kê sách',
+					description:
+						'Bạn có muốn tải xuống báo cáo thống kê sách dưới dạng PDF?',
+					icon: <BookOpen className="h-6 w-6 text-green-600" />,
+					fileName: 'thong-ke-sach.pdf',
+				};
 			case 'overview':
 				return {
 					title: 'Xuất báo cáo tổng quan',
 					description: 'Bạn có muốn tải xuống báo cáo tổng quan dưới dạng PDF?',
-					icon: <FileText className="h-6 w-6 text-green-600" />,
+					icon: <FileText className="h-6 w-6 text-purple-600" />,
 					fileName: 'bao-cao-tong-quan.pdf',
 				};
 			default:
