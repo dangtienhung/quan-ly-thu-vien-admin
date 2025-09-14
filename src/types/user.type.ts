@@ -35,3 +35,24 @@ export type UpdateUserRequest = {
 	role: UserRole;
 	accountStatus: 'active' | 'inactive' | 'banned';
 };
+
+export type UserStatsDto = {
+	totalUsers: number;
+	usersByRole: {
+		admin: number;
+		reader: number;
+	};
+	usersByStatus: {
+		active: number;
+		suspended: number;
+		banned: number;
+	};
+	newUsersLast30Days: number;
+	activeUsersLast7Days?: number;
+	neverLoggedInUsers: number;
+	monthlyStats: {
+		month: string;
+		count: number;
+	}[];
+	generatedAt: string;
+};

@@ -8,36 +8,55 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Button } from '@/components/ui/button';
+import { useDashboardTabs } from '@/hooks/dashboard/use-dashboard-tabs';
+import { useDownloadStats } from '@/hooks/dashboard/use-download-stats';
+import { useState } from 'react';
+import { DownloadConfirmDialog } from './components/download-confirm-dialog';
 import { Overview } from './components/overview';
 import { RecentSales } from './components/recent-sales';
+import { UserStats } from './components/user-stats';
 
 export default function Dashboard() {
+	const { activeTab, handleTabChange } = useDashboardTabs();
+	const { isDownloading, downloadStats } = useDownloadStats();
+	const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false);
+
+	const handleDownloadClick = () => {
+		setIsDownloadDialogOpen(true);
+	};
+
+	const handleConfirmDownload = async () => {
+		await downloadStats(activeTab);
+		setIsDownloadDialogOpen(false);
+	};
+
 	return (
 		<>
 			{/* ===== Main ===== */}
 			<div className="mb-2 flex items-center justify-between space-y-2">
 				<h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
 				<div className="flex items-center space-x-2">
-					<Button>Download</Button>
+					<Button onClick={handleDownloadClick} disabled={isDownloading}>
+						{isDownloading ? 'Đang tạo file...' : 'Download'}
+					</Button>
 				</div>
 			</div>
 			<Tabs
 				orientation="vertical"
-				defaultValue="overview"
+				value={activeTab}
+				onValueChange={handleTabChange}
 				className="space-y-4"
 			>
 				<div className="w-full overflow-x-auto pb-2">
 					<TabsList>
-						<TabsTrigger value="overview">Overview</TabsTrigger>
+						<TabsTrigger value="overview">Tổng quan</TabsTrigger>
 						<TabsTrigger value="analytics" disabled>
-							Analytics
+							Thống kê mượn trả
 						</TabsTrigger>
 						<TabsTrigger value="reports" disabled>
-							Reports
+							Thống kê sách
 						</TabsTrigger>
-						<TabsTrigger value="notifications" disabled>
-							Notifications
-						</TabsTrigger>
+						<TabsTrigger value="users-stats">Người dùng</TabsTrigger>
 					</TabsList>
 				</div>
 				<TabsContent value="overview" className="space-y-4">
@@ -45,7 +64,7 @@ export default function Dashboard() {
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 								<CardTitle className="text-sm font-medium">
-									Total Revenue
+									Tổng doanh thu
 								</CardTitle>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +185,18 @@ export default function Dashboard() {
 						</Card>
 					</div>
 				</TabsContent>
+				<TabsContent value="users-stats" className="space-y-4">
+					<UserStats />
+				</TabsContent>
 			</Tabs>
+
+			<DownloadConfirmDialog
+				open={isDownloadDialogOpen}
+				onOpenChange={setIsDownloadDialogOpen}
+				onConfirm={handleConfirmDownload}
+				tabType={activeTab}
+				isLoading={isDownloading}
+			/>
 		</>
 	);
 }

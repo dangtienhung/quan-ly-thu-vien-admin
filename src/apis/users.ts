@@ -131,4 +131,12 @@ export const UsersAPI = {
 		const res = await instance.get('/api/reader-types');
 		return res.data;
 	},
+
+	// Get user statistics
+	getUserStats: async (): Promise<
+		import('../types/user.type').UserStatsDto
+	> => {
+		const res = await instance.get('/api/users/stats');
+		return res.data;
+	},
 };
