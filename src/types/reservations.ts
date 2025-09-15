@@ -1,5 +1,7 @@
 import type { BaseEntity, PaginatedResponse } from './common';
 
+import type { ReaderTypeConfig } from './reader-types';
+
 export type ReservationStatus =
 	| 'pending'
 	| 'fulfilled'
@@ -11,7 +13,7 @@ export interface Reservation extends BaseEntity {
 	reader: {
 		id: string;
 		user: null;
-		readerType: null;
+		readerType: ReaderTypeConfig;
 		fullName: string;
 		dob: string;
 		gender: string;
@@ -84,7 +86,7 @@ export interface ReservationExpiringSoonItem {
 	reader: {
 		id: string;
 		user: null;
-		readerType: null;
+		readerType: ReaderTypeConfig;
 		fullName: string;
 		dob: string;
 		gender: string;

@@ -17,7 +17,7 @@ import { FulfillConfirmDialog } from './FulfillConfirmDialog';
 
 interface ExpiringSoonTableProps {
 	reservations: ReservationExpiringSoonItem[];
-	onFulfill: (id: string) => void;
+	onFulfill: (id: string, notes?: string) => void;
 	onCancel: (data: {
 		id: string;
 		librarianId: string;
@@ -51,6 +51,13 @@ export const ExpiringSoonTable: React.FC<ExpiringSoonTableProps> = ({
 	const calculateDaysUntilExpiry = (expiryDate: string) => {
 		const expiry = new Date(expiryDate);
 		const today = new Date();
+
+		// Set time to end of day for expiry date
+		expiry.setHours(23, 59, 59, 999);
+
+		// Set time to start of day for today
+		today.setHours(0, 0, 0, 0);
+
 		const diffTime = expiry.getTime() - today.getTime();
 		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 		return diffDays > 0 ? diffDays : 0;
@@ -67,9 +74,9 @@ export const ExpiringSoonTable: React.FC<ExpiringSoonTableProps> = ({
 		setCancelDialogOpen(true);
 	};
 
-	const handleConfirmFulfill = () => {
+	const handleConfirmFulfill = (notes?: string) => {
 		if (selectedReservation) {
-			onFulfill(selectedReservation.id);
+			onFulfill(selectedReservation.id, notes);
 			setFulfillDialogOpen(false);
 			setSelectedReservation(null);
 		}

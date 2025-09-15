@@ -6,17 +6,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import type {
+	Reservation,
+	ReservationExpiringSoonItem,
+} from '@/types/reservations';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { Reservation } from '@/types/reservations';
 import { useState } from 'react';
 
 interface CancelConfirmDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	reservation: Reservation | null;
+	reservation: Reservation | ReservationExpiringSoonItem | null;
 	onConfirm: (reason: string) => void;
 	onCancel?: () => void;
 	isLoading?: boolean;

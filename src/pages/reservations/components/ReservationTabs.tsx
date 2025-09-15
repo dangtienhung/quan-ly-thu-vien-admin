@@ -26,7 +26,7 @@ interface ReservationTabsProps {
 	isDeletePending: boolean;
 	isApproving: boolean;
 	onExpire: (reservationId: string) => void;
-	onFulfill: (id: string) => void;
+	onFulfill: (id: string, notes?: string) => void;
 	onCancel: (data: {
 		id: string;
 		librarianId: string;

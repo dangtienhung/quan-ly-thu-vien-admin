@@ -11,6 +11,7 @@ import { Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { isExpiredByEndOfDay } from '@/utils/borrow-utils';
 import { useState } from 'react';
 import { CancelConfirmDialog } from './CancelConfirmDialog';
 import { ExpireConfirmDialog } from './ExpireConfirmDialog';
@@ -19,7 +20,7 @@ import { FulfillConfirmDialog } from './FulfillConfirmDialog';
 interface ReservationTableProps {
 	reservations: Reservation[];
 	isLoading: boolean;
-	onFulfill: (id: string) => void;
+	onFulfill: (id: string, notes?: string) => void;
 	onCancel: (data: {
 		id: string;
 		librarianId: string;
@@ -128,9 +129,9 @@ export const ReservationTable: React.FC<ReservationTableProps> = ({
 		setExpireDialogOpen(true);
 	};
 
-	const handleConfirmFulfill = () => {
+	const handleConfirmFulfill = (notes?: string) => {
 		if (selectedReservation) {
-			onFulfill(selectedReservation.id);
+			onFulfill(selectedReservation.id, notes);
 			setFulfillDialogOpen(false);
 			setSelectedReservation(null);
 		}
@@ -245,7 +246,7 @@ export const ReservationTable: React.FC<ReservationTableProps> = ({
 									{reservation.status === 'pending' && (
 										<>
 											{/* Kiểm tra xem đặt trước có quá hạn không */}
-											{new Date(reservation.expiry_date) < new Date() ? (
+											{isExpiredByEndOfDay(reservation.expiry_date) ? (
 												// Đặt trước quá hạn - chỉ hiển thị button Hủy
 												<Button
 													variant="destructive"

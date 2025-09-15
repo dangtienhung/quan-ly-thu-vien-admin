@@ -1,9 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
 import {
-	useApproveBorrowRecord,
-	useBorrowRecordsByStatus,
-} from '@/hooks/borrow-records';
-import {
 	useCancelReservation,
 	useCreateReservation,
 	useDeleteReservation,
@@ -17,6 +13,11 @@ import type {
 	Reservation,
 	ReservationExpiringSoonItem,
 } from '@/types/reservations';
+import {
+	calculateDueDate,
+	getTodayDate,
+	isExpiredByEndOfDay,
+} from '@/utils/borrow-utils';
 import { useEffect, useState } from 'react';
 import {
 	CreateReservationDialog,
@@ -29,7 +30,7 @@ import {
 import { NotificationsAPI } from '@/apis';
 import { BorrowRecordsAPI } from '@/apis/borrow-records';
 import { PhysicalCopiesAPI } from '@/apis/physical-copies';
-import { ReservationsAPI } from '@/apis/reservations';
+import { useBorrowRecordsByStatus } from '@/hooks/borrow-records';
 import { useExpireReservation } from '@/hooks/reservations/use-exprice-revations';
 import { useQueryParams } from '@/hooks/useQueryParam';
 import { useGetProfile } from '@/hooks/users/use-get-profile';
@@ -54,7 +55,6 @@ export default function ReservationsPage() {
 	const currentStatus = queryParams.status || 'pending';
 
 	const queryClient = useQueryClient();
-	const { approveBorrowRecord, isApproving } = useApproveBorrowRecord();
 
 	// Fetch reservations data
 	const { reservations, isLoading: isLoadingReservations } = useReservations({
@@ -98,7 +98,7 @@ export default function ReservationsPage() {
 		reservations.some(
 			(reservation) =>
 				reservation.status === 'pending' &&
-				new Date(reservation.expiry_date) < new Date()
+				isExpiredByEndOfDay(reservation.expiry_date)
 		);
 
 	// Logic chặn thao tác khi còn đặt trước quá hạn
@@ -276,7 +276,10 @@ export default function ReservationsPage() {
 		});
 	};
 
-	const handleFulfillReservation = async (reservationId: string) => {
+	const handleFulfillReservation = async (
+		reservationId: string,
+		notes?: string
+	) => {
 		// Chặn thực hiện đặt trước khi còn đặt trước quá hạn
 		if (isBlockedByExpiredReservations) {
 			toast.error('Không thể thực hiện đặt trước!', {
@@ -288,136 +291,101 @@ export default function ReservationsPage() {
 		// Hiển thị thông báo bắt đầu xử lý
 		const mainLoadingToast = toast.loading('Bắt đầu xử lý đặt trước...');
 
-		const reservation = reservations.find(
-			(reservation) => reservation.id === reservationId
-		);
+		const reservation = reservations.find((reservation) => {
+			return reservation.id === reservationId;
+		});
+
 		if (reservation) {
-			// find borrow record by reservation id
-			const borrowRecord = statusRecords.find((record) => {
-				return (
-					reservation.reader_id === record.reader_id &&
-					reservation.book_id === record.physicalCopy?.book_id &&
-					reservation.physical_copy_id === record.physicalCopy?.id
-				);
-			});
+			console.log('🚀 ~ handleFulfillReservation ~ reservation:', reservation);
 
-			if (borrowRecord) {
-				// Approve the borrow record to change status from pending_approval to borrowed
-				approveBorrowRecord(
-					{
-						id: borrowRecord.id,
-						data: {
-							librarianId: user?.id || '',
-							notes: `Đặt trước được thực hiện - Reservation ID: ${reservation.id} - ${user?.id}`,
-						},
+			try {
+				// 1. Lấy thông tin reader type từ reservation data
+				const readerType = reservation.reader?.readerType;
+
+				if (!readerType) {
+					toast.dismiss(mainLoadingToast);
+					toast.error('Không tìm thấy thông tin loại độc giả!', {
+						description: 'Vui lòng kiểm tra lại thông tin đặt trước.',
+					});
+					return;
+				}
+
+				// 2. Tính ngày mượn (hôm nay) và ngày trả dựa trên reader type
+				const today = getTodayDate();
+				const dueDate = calculateDueDate(today, readerType);
+
+				// 3. Tạo borrow record với status "borrowed"
+				const borrowRecordData = {
+					reader_id: reservation.reader_id,
+					copy_id: reservation.physical_copy_id,
+					borrow_date: today,
+					due_date: dueDate,
+					status: 'borrowed' as const,
+					librarian_id: user?.id || '',
+					borrow_notes:
+						notes ||
+						`Đặt trước được thực hiện - Reservation ID: ${reservation.id}`,
+					renewal_count: 0,
+				};
+
+				// 4. Tạo borrow record
+				await BorrowRecordsAPI.create(borrowRecordData);
+
+				// 5. Fulfill reservation
+				await fulfillReservationMutation.mutateAsync({
+					id: reservationId,
+					data: {
+						librarianId: user?.id || '',
+						notes:
+							notes ||
+							`Đặt trước được thực hiện - Reservation ID: ${reservation.id}`,
 					},
-					{
-						onSuccess: async () => {
-							// Fulfill the reservation after approving borrow record
-							try {
-								await ReservationsAPI.fulfill(reservationId, {
-									librarianId: user?.id || '',
-									notes: `Đặt trước được thực hiện - Reservation ID: ${reservation.id} - ${user?.id}`,
-								});
+				});
 
-								// Gửi thông báo nhắc nhở cho độc giả
-								const dueDate = new Date();
-								dueDate.setDate(dueDate.getDate() + 14); // Mặc định 14 ngày
+				// 6. Update physical copy status thành 'borrowed'
+				if (reservation.physical_copy_id) {
+					await PhysicalCopiesAPI.updateStatus(reservation.physical_copy_id, {
+						status: 'borrowed',
+						notes: notes
+							? `Đã mượn - ${notes}`
+							: `Đã mượn - Reservation ID: ${reservation.id}`,
+					});
+				}
 
-								// Hiển thị thông báo đang gửi
-								const loadingToast = toast.loading(
-									'Đang gửi thông báo đến độc giả...'
-								);
+				// 7. Gửi thông báo cho độc giả
+				try {
+					await NotificationsAPI.sendReminders({
+						readerId: reservation.reader_id,
+						customMessage: `Xin chào! Đặt trước sách "${
+							reservation.book?.title
+						}" của bạn đã được thực hiện thành công. Sách sẽ được giao trong thời gian sớm nhất. Ngày trả dự kiến: ${new Date(
+							dueDate
+						).toLocaleDateString(
+							'vi-VN'
+						)}. Vui lòng kiểm tra email hoặc liên hệ thư viện để nhận sách.`,
+					});
+				} catch (error) {
+					console.error('Lỗi gửi thông báo:', error);
+					toast.warning(
+						'Đặt trước thành công nhưng không thể gửi thông báo đến độc giả.'
+					);
+				}
 
-								// Gửi thông báo cho độc giả cụ thể
-								try {
-									NotificationsAPI.sendReminders({
-										readerId: reservation.reader_id,
-										customMessage: `Xin chào! Đặt trước sách của bạn đã được thực hiện thành công. Sách sẽ được giao trong thời gian sớm nhất. Ngày trả dự kiến: ${dueDate.toLocaleDateString(
-											'vi-VN'
-										)}. Vui lòng kiểm tra email hoặc liên hệ thư viện để nhận sách.`,
-									});
+				// 8. Invalidate queries để refresh data
+				queryClient.invalidateQueries({ queryKey: ['reservations'] });
+				queryClient.invalidateQueries({ queryKey: ['reservation-stats'] });
+				queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
+				queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
+				queryClient.invalidateQueries({ queryKey: ['physical-copies'] });
 
-									// Dismiss loading toast
-									toast.dismiss(loadingToast);
-								} catch (error) {
-									console.error('Lỗi gửi thông báo:', error);
-									toast.dismiss(loadingToast);
-									toast.warning(
-										'Đặt trước thành công nhưng không thể gửi thông báo đến độc giả. Vui lòng thử lại sau.'
-									);
-								}
-
-								// Hiển thị thông báo thành công với thông tin chi tiết
-								toast.success(`Đã thực hiện đặt trước thành công!`, {
-									duration: 5000,
-									description: (
-										<div className="mt-2 space-y-1 text-sm">
-											<div>
-												<strong>Độc giả:</strong>{' '}
-												{reservation.reader?.fullName || 'N/A'}
-											</div>
-											<div>
-												<strong>Sách:</strong>{' '}
-												{reservation.book?.title || 'N/A'}
-											</div>
-											<div>
-												<strong>Ngày trả dự kiến:</strong>{' '}
-												{dueDate.toLocaleDateString('vi-VN')}
-											</div>
-											<div className="text-green-600">
-												✓ Thông báo đã được gửi đến độc giả
-											</div>
-										</div>
-									),
-								});
-
-								// Dismiss main loading toast
-								toast.dismiss(mainLoadingToast);
-
-								// Invalidate queries để refresh data
-								queryClient.invalidateQueries({ queryKey: ['reservations'] });
-								queryClient.invalidateQueries({
-									queryKey: ['reservation-stats'],
-								});
-								queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-								queryClient.invalidateQueries({
-									queryKey: ['borrow-records-stats'],
-								});
-								queryClient.invalidateQueries({
-									queryKey: [
-										'borrow-records-by-status',
-										{
-											status: 'pending_approval',
-											page: 1,
-											limit: 1000,
-										},
-									],
-								});
-							} catch (error) {
-								console.error('Lỗi thực hiện đặt trước:', error);
-								toast.dismiss(mainLoadingToast);
-								toast.error('Có lỗi xảy ra khi thực hiện đặt trước!', {
-									description:
-										'Vui lòng thử lại hoặc liên hệ quản trị viên nếu vấn đề vẫn tiếp tục.',
-								});
-							}
-						},
-						onError: (error: Error) => {
-							console.error('Lỗi phê duyệt yêu cầu mượn sách:', error);
-							toast.dismiss(mainLoadingToast);
-							toast.error('Có lỗi xảy ra khi phê duyệt yêu cầu mượn sách!', {
-								description:
-									'Vui lòng thử lại hoặc liên hệ quản trị viên nếu vấn đề vẫn tiếp tục.',
-							});
-						},
-					}
-				);
-			} else {
+				// 9. Dismiss main loading toast
 				toast.dismiss(mainLoadingToast);
-				toast.error('Không tìm thấy yêu cầu mượn sách tương ứng!', {
+			} catch (error) {
+				console.error('Lỗi thực hiện đặt trước:', error);
+				toast.dismiss(mainLoadingToast);
+				toast.error('Có lỗi xảy ra khi thực hiện đặt trước!', {
 					description:
-						'Vui lòng kiểm tra lại thông tin đặt trước hoặc liên hệ quản trị viên.',
+						'Vui lòng thử lại hoặc liên hệ quản trị viên nếu vấn đề vẫn tiếp tục.',
 				});
 			}
 		} else {
@@ -652,7 +620,7 @@ export default function ReservationsPage() {
 				isFulfillPending={fulfillReservationMutation.isPending}
 				isCancelPending={cancelReservationMutation.isPending}
 				isDeletePending={deleteReservationMutation.isPending}
-				isApproving={isApproving}
+				isApproving={false}
 				onFulfill={handleFulfillReservation}
 				onCancel={handleCancelReservationExpiring}
 				onDelete={handleDeleteReservation}

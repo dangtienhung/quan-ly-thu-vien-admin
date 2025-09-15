@@ -39,7 +39,7 @@ khi mượn sách, trạng thái phải là: "đã đặt mượn", không phả
   - bỏ phiên bản, thể loại, khối lớp
   - các trường không bắt buộc: số trang
 8. Quản lý Đặt Trước
-- confirm xác nhận bổ sung thêm note trước khi confirm
+- confirm xác nhận bổ sung thêm note trước khi confirm -> pending
 9. Tạo phạt mới
 - chỉnh format: mã độc giả - tên đọc giả
 - lần mượn quá hạn: (optional)

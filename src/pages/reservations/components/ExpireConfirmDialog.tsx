@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { Reservation } from '@/types/reservations';
+import { isExpiredByEndOfDay } from '@/utils/borrow-utils';
 import { useState } from 'react';
 
 interface ExpireConfirmDialogProps {
@@ -48,7 +49,7 @@ export const ExpireConfirmDialog: React.FC<ExpireConfirmDialogProps> = ({
 		}
 	};
 
-	const isExpired = new Date(reservation.expiry_date) < new Date();
+	const isExpired = isExpiredByEndOfDay(reservation.expiry_date);
 	const daysOverdue = isExpired
 		? Math.ceil(
 				(new Date().getTime() - new Date(reservation.expiry_date).getTime()) /
