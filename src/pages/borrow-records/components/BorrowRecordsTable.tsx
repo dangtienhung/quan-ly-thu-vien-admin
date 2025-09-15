@@ -6,6 +6,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
+import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
 import {
 	AlertTriangle,
 	Bell,
@@ -17,28 +18,25 @@ import {
 	Receipt,
 	ThumbsUp,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BorrowStatus } from '@/types/borrow-records';
+import { BorrowRecordDetailsDialog } from './BorrowRecordDetailsDialog';
 
 interface BorrowRecordsTableProps {
 	records: any[];
 	isLoading: boolean;
-	onViewDetails: (record: any) => void;
 	onApprove: (record: any) => void;
 	onReturn: (record: any) => void;
 	onRenew: (record: any) => void;
 	onSendNotification: (record: any) => void;
-	onDelete: (record: any) => void;
 	onUpdateOverdue: (record: any) => void;
 	onCreateFine: (record: any) => void;
 	isApproving: boolean;
 	isReturning: boolean;
 	isRenewing: boolean;
 	isSendingReminders: boolean;
-	isDeleting: boolean;
 	isUpdatingOverdue: boolean;
 	isCreatingFine: boolean;
 	shouldDisableApproveButton: (record: any) => boolean;
@@ -49,25 +47,28 @@ interface BorrowRecordsTableProps {
 export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	records,
 	isLoading,
-	onViewDetails,
 	onApprove,
 	onReturn,
 	onRenew,
 	onSendNotification,
-	onDelete,
 	onUpdateOverdue,
 	onCreateFine,
 	isApproving,
 	isReturning,
 	isRenewing,
 	isSendingReminders,
-	isDeleting,
 	isUpdatingOverdue,
 	isCreatingFine,
 	shouldDisableApproveButton,
 	approvedBooks,
 	currentStatus,
 }) => {
+	// State for details dialog
+	const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+	const [selectedRecord, setSelectedRecord] = useState<BorrowRecord | null>(
+		null
+	);
+
 	// Ref để theo dõi các record đã được xử lý tự động
 	const processedRecordsRef = useRef<Set<string>>(new Set());
 
@@ -200,6 +201,12 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 		return currentStatus !== 'all' && record.status === 'borrowed';
 	};
 
+	// Handler for opening details dialog
+	const handleViewDetails = (record: any) => {
+		setSelectedRecord(record);
+		setDetailsDialogOpen(true);
+	};
+
 	const renderBorrowRecordRow = (record: any) => {
 		const isRecordOverdue = isOverdue(record);
 		const disableOtherActions = shouldDisableOtherActions(record);
@@ -267,7 +274,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => onViewDetails(record)}
+							onClick={() => handleViewDetails(record)}
 							title="Xem chi tiết"
 						>
 							<Eye className="h-4 w-4" />
@@ -465,24 +472,33 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	}
 
 	return (
-		<div className="overflow-x-auto">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead>Sách</TableHead>
-						<TableHead>Độc giả</TableHead>
-						<TableHead>Ngày mượn</TableHead>
-						<TableHead>Hạn trả</TableHead>
-						<TableHead>Trạng thái</TableHead>
-						<TableHead>Thời gian</TableHead>
-						<TableHead>Ngày trả</TableHead>
-						<TableHead>Hành động</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{records.map((record) => renderBorrowRecordRow(record))}
-				</TableBody>
-			</Table>
-		</div>
+		<>
+			<div className="overflow-x-auto">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Sách</TableHead>
+							<TableHead>Độc giả</TableHead>
+							<TableHead>Ngày mượn</TableHead>
+							<TableHead>Hạn trả</TableHead>
+							<TableHead>Trạng thái</TableHead>
+							<TableHead>Thời gian</TableHead>
+							<TableHead>Ngày trả</TableHead>
+							<TableHead>Hành động</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{records.map((record) => renderBorrowRecordRow(record))}
+					</TableBody>
+				</Table>
+			</div>
+
+			{/* Details Dialog */}
+			<BorrowRecordDetailsDialog
+				open={detailsDialogOpen}
+				onOpenChange={setDetailsDialogOpen}
+				record={selectedRecord}
+			/>
+		</>
 	);
 };

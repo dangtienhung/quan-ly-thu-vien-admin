@@ -7,19 +7,16 @@ interface BorrowRecordsTabsProps {
 	onTabChange: (value: string) => void;
 	records: any[];
 	isLoading: boolean;
-	onViewDetails: (record: any) => void;
 	onApprove: (record: any) => void;
 	onReturn: (record: any) => void;
 	onRenew: (record: any) => void;
 	onSendNotification: (record: any) => void;
-	onDelete: (record: any) => void;
 	onUpdateOverdue: (record: any) => void;
 	onCreateFine: (record: any) => void;
 	isApproving: boolean;
 	isReturning: boolean;
 	isRenewing: boolean;
 	isSendingReminders: boolean;
-	isDeleting: boolean;
 	isUpdatingOverdue: boolean;
 	isCreatingFine: boolean;
 	shouldDisableApproveButton: (record: any) => boolean;
@@ -31,19 +28,16 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 	onTabChange,
 	records,
 	isLoading,
-	onViewDetails,
 	onApprove,
 	onReturn,
 	onRenew,
 	onSendNotification,
-	onDelete,
 	onUpdateOverdue,
 	onCreateFine,
 	isApproving,
 	isReturning,
 	isRenewing,
 	isSendingReminders,
-	isDeleting,
 	isUpdatingOverdue,
 	isCreatingFine,
 	shouldDisableApproveButton,
@@ -63,19 +57,16 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 				<BorrowRecordsTable
 					records={records}
 					isLoading={isLoading}
-					onViewDetails={onViewDetails}
 					onApprove={onApprove}
 					onReturn={onReturn}
 					onRenew={onRenew}
 					onSendNotification={onSendNotification}
-					onDelete={onDelete}
 					onUpdateOverdue={onUpdateOverdue}
 					onCreateFine={onCreateFine}
 					isApproving={isApproving}
 					isReturning={isReturning}
 					isRenewing={isRenewing}
 					isSendingReminders={isSendingReminders}
-					isDeleting={isDeleting}
 					isUpdatingOverdue={isUpdatingOverdue}
 					isCreatingFine={isCreatingFine}
 					shouldDisableApproveButton={shouldDisableApproveButton}

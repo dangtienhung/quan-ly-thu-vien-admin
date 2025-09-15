@@ -38,7 +38,6 @@ export const FulfillConfirmDialog: React.FC<FulfillConfirmDialogProps> = ({
 	const [isNotesEmpty, setIsNotesEmpty] = useState(true);
 
 	const { user } = useAuth();
-	console.log('🚀 ~ FulfillConfirmDialog ~ user:', user);
 
 	if (!reservation) return null;
 

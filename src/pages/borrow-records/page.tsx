@@ -88,7 +88,6 @@ export default function BorrowRecordsPage() {
 		params: borrowRecordStatus,
 		enabled: true, // Luôn enable để phản ứng với thay đổi params
 	});
-	console.log('🚀 ~ BorrowRecordsPage ~ statusRecords:', statusRecords);
 
 	// Mutation hooks
 	const { createBorrowRecord, isCreating } = useCreateBorrowRecord();
@@ -573,19 +572,16 @@ export default function BorrowRecordsPage() {
 				onTabChange={handleSelectedTab}
 				records={statusRecords}
 				isLoading={isLoadingStatus}
-				onViewDetails={setSelectedRecord}
 				onApprove={handleApproveRecord}
 				onReturn={openReturnDialog}
 				onRenew={openRenewDialog}
 				onSendNotification={handleSendNotification}
-				onDelete={handleDeleteRecord}
 				onUpdateOverdue={handleUpdateOverdue}
 				onCreateFine={handleCreateFine}
 				isApproving={isApproving}
 				isReturning={isReturning}
 				isRenewing={isRenewing}
 				isSendingReminders={isSendingReminders}
-				isDeleting={isDeleting}
 				isUpdatingOverdue={updateOverdueMutation.isPending}
 				isCreatingFine={isCreatingFine}
 				shouldDisableApproveButton={shouldDisableApproveButton}
