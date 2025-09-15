@@ -261,6 +261,49 @@ const generateUserStatsHTML = (stats: UserStatsDto): string => {
 			</div>
 
 			<div class="section">
+				<div class="section-title">Phân bố theo loại độc giả</div>
+				<table class="table">
+					<tr>
+						<th>Loại độc giả</th>
+						<th>Số lượng</th>
+						<th>Tỷ lệ</th>
+					</tr>
+					<tr>
+						<td>Học sinh</td>
+						<td>${formatValue(stats.readersByType?.student)}</td>
+						<td>${calculatePercentage(
+							stats.readersByType?.student || 0,
+							stats.usersByRole?.reader || 0
+						)}</td>
+					</tr>
+					<tr>
+						<td>Giáo viên</td>
+						<td>${formatValue(stats.readersByType?.teacher)}</td>
+						<td>${calculatePercentage(
+							stats.readersByType?.teacher || 0,
+							stats.usersByRole?.reader || 0
+						)}</td>
+					</tr>
+					<tr>
+						<td>Nhân viên</td>
+						<td>${formatValue(stats.readersByType?.staff)}</td>
+						<td>${calculatePercentage(
+							stats.readersByType?.staff || 0,
+							stats.usersByRole?.reader || 0
+						)}</td>
+					</tr>
+					<tr>
+						<td>Khách</td>
+						<td>${formatValue(stats.readersByType?.guest)}</td>
+						<td>${calculatePercentage(
+							stats.readersByType?.guest || 0,
+							stats.usersByRole?.reader || 0
+						)}</td>
+					</tr>
+				</table>
+			</div>
+
+			<div class="section">
 				<div class="section-title">Thống kê theo tháng</div>
 				<table class="table">
 					<tr>
@@ -389,31 +432,52 @@ const generateBookStatsHTML = (stats: BookStatisticsDto): string => {
 			</div>
 
 			<div class="section">
-				<div class="section-title">Thống kê theo thể loại</div>
+				<div class="section-title">Thống kê theo thể loại (Phân cấp)</div>
 				<table class="table">
 					<tr>
 						<th>Thể loại</th>
 						<th>Tổng sách</th>
+						<th>Sách trực tiếp</th>
 						<th>Sách vật lý</th>
 						<th>Sách điện tử</th>
 						<th>Tỷ lệ</th>
 					</tr>
 					${
-						stats.byMainCategory && stats.byMainCategory.length > 0
-							? stats.byMainCategory
+						stats.byHierarchicalCategory &&
+						stats.byHierarchicalCategory.length > 0
+							? stats.byHierarchicalCategory
 									.map(
 										(category) => `
 							<tr>
-								<td>${category.mainCategoryName}</td>
+								<td style="font-weight: bold; color: #16ae5b;">${category.categoryName}</td>
 								<td>${formatValue(category.bookCount)}</td>
+								<td>${formatValue(category.directBookCount)}</td>
 								<td>${formatValue(category.physicalBookCount)}</td>
 								<td>${formatValue(category.ebookCount)}</td>
 								<td>${calculatePercentage(category.bookCount || 0, stats.totalBooks || 0)}</td>
 							</tr>
+							${
+								category.children && category.children.length > 0
+									? category.children
+											.map(
+												(child) => `
+									<tr>
+										<td style="padding-left: 20px; color: #6b7280;">└─ ${child.categoryName}</td>
+										<td>${formatValue(child.bookCount)}</td>
+										<td>${formatValue(child.directBookCount)}</td>
+										<td>${formatValue(child.physicalBookCount)}</td>
+										<td>${formatValue(child.ebookCount)}</td>
+										<td>${calculatePercentage(child.bookCount || 0, stats.totalBooks || 0)}</td>
+									</tr>
+								`
+											)
+											.join('')
+									: ''
+							}
 						`
 									)
 									.join('')
-							: '<tr><td colspan="5" style="text-align: center; color: #6b7280;">Chưa có dữ liệu thể loại</td></tr>'
+							: '<tr><td colspan="6" style="text-align: center; color: #6b7280;">Chưa có dữ liệu thể loại</td></tr>'
 					}
 				</table>
 			</div>

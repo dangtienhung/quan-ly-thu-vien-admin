@@ -24,9 +24,9 @@ khi mượn sách, trạng thái phải là: "đã đặt mượn", không phả
   + bỏ Chờ phê duyệt -> done
   + bỏ sắp hết hạn -> done
   tab book:
-    chỉnh lại table Chi tiết theo thể loại theo dạng cha/con expand
+    chỉnh lại table Chi tiết theo thể loại theo dạng cha/con expand -> oke
   tab user:
-    thống kế theo loại độc giả
+    thống kế theo loại độc giả -> oke
 3. reservations:
   chung 1 status: phần hết hạn -> Đã hủy
 4. Phân bố theo thể loại -> thống kê chỉ theo parent id

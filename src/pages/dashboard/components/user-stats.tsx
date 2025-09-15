@@ -68,6 +68,30 @@ export const UserStats = () => {
 			users: item.count,
 		})) || [];
 
+	// Data for reader type chart
+	const readerTypeData = [
+		{
+			name: 'Học sinh',
+			value: userStats?.readersByType.student || 0,
+			color: '#3b82f6',
+		},
+		{
+			name: 'Giáo viên',
+			value: userStats?.readersByType.teacher || 0,
+			color: '#10b981',
+		},
+		{
+			name: 'Nhân viên',
+			value: userStats?.readersByType.staff || 0,
+			color: '#f59e0b',
+		},
+		{
+			name: 'Khách',
+			value: userStats?.readersByType.guest || 0,
+			color: '#8b5cf6',
+		},
+	];
+
 	if (isLoading) {
 		return (
 			<div className="space-y-4">
@@ -315,6 +339,65 @@ export const UserStats = () => {
 					</CardContent>
 				</Card>
 			</div>
+
+			{/* Reader Type Stats */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Phân bố theo loại độc giả</CardTitle>
+					<CardDescription>
+						Thống kê độc giả theo loại người dùng
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+						{/* Chart */}
+						<div className="h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<PieChart>
+									<Pie
+										data={readerTypeData}
+										cx="50%"
+										cy="50%"
+										labelLine={false}
+										label={({ name, percent }) =>
+											`${name}: ${((percent || 0) * 100).toFixed(0)}%`
+										}
+										outerRadius={80}
+										fill="#8884d8"
+										dataKey="value"
+									>
+										{readerTypeData.map((entry, index) => (
+											<Cell key={`cell-${index}`} fill={entry.color} />
+										))}
+									</Pie>
+									<Tooltip />
+								</PieChart>
+							</ResponsiveContainer>
+						</div>
+
+						{/* Legend */}
+						<div className="space-y-4">
+							{readerTypeData.map((item, index) => (
+								<div key={index} className="flex items-center justify-between">
+									<div className="flex items-center space-x-2">
+										<div
+											className="w-3 h-3 rounded-full"
+											style={{ backgroundColor: item.color }}
+										></div>
+										<span className="text-sm font-medium">{item.name}</span>
+									</div>
+									<span
+										className="text-2xl font-bold"
+										style={{ color: item.color }}
+									>
+										{item.value}
+									</span>
+								</div>
+							))}
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 
 			{/* Monthly Stats */}
 			<Card>

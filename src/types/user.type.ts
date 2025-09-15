@@ -2,6 +2,8 @@ import type { PaginationQuery } from './common';
 
 export type UserRole = 'admin' | 'reader';
 
+export type ReaderTypeName = 'student' | 'teacher' | 'staff' | 'guest';
+
 export type PaginationUserQuery = PaginationQuery & {
 	type?: UserRole;
 	search?: string;
@@ -47,6 +49,7 @@ export type UserStatsDto = {
 		suspended: number;
 		banned: number;
 	};
+	readersByType: Record<ReaderTypeName, number>;
 	newUsersLast30Days: number;
 	activeUsersLast7Days?: number;
 	neverLoggedInUsers: number;
