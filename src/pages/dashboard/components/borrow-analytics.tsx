@@ -181,7 +181,7 @@ export const BorrowAnalytics = () => {
 	return (
 		<div className="space-y-4">
 			{/* Overview Cards */}
-			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
 				{/* Borrow Records Stats */}
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -206,19 +206,6 @@ export const BorrowAnalytics = () => {
 							{borrowStats?.activeLoans || 0}
 						</div>
 						<p className="text-muted-foreground text-xs">Sách đang được mượn</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Chờ phê duyệt</CardTitle>
-						<Clock className="h-4 w-4 text-muted-foreground" />
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">
-							{borrowStats?.pendingApproval || 0}
-						</div>
-						<p className="text-muted-foreground text-xs">Yêu cầu chờ duyệt</p>
 					</CardContent>
 				</Card>
 
@@ -261,21 +248,6 @@ export const BorrowAnalytics = () => {
 							{reservationStats?.pending || 0}
 						</div>
 						<p className="text-muted-foreground text-xs">Đặt trước chờ xử lý</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Sắp hết hạn</CardTitle>
-						<AlertTriangle className="h-4 w-4 text-muted-foreground" />
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">
-							{reservationStats?.expiringSoon || 0}
-						</div>
-						<p className="text-muted-foreground text-xs">
-							Đặt trước sắp hết hạn
-						</p>
 					</CardContent>
 				</Card>
 

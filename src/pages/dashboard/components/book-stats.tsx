@@ -5,7 +5,19 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card';
-import { BookOpen, FileText, Library, TrendingUp } from 'lucide-react';
+import type {
+	BookStatisticsDto,
+	HierarchicalCategoryStatisticsDto,
+} from '@/types/book.type';
+import {
+	BookOpen,
+	ChevronDown,
+	ChevronRight,
+	FileText,
+	Library,
+	TrendingUp,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import {
 	Bar,
 	BarChart,
@@ -19,13 +31,138 @@ import {
 	YAxis,
 } from 'recharts';
 
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBookStats } from '@/hooks/books/use-book-stats';
-import type { BookStatisticsDto } from '@/types/book.type';
 
 export const BookStats = () => {
 	const { data: stats, isLoading, error } = useBookStats();
 	const bookStats = stats as BookStatisticsDto | undefined;
+
+	// State for managing expanded categories
+	const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+		new Set()
+	);
+
+	// Initialize all categories as expanded on first load
+	useEffect(() => {
+		if (bookStats?.byHierarchicalCategory) {
+			const allCategoryIds = new Set<string>();
+			const collectAllIds = (
+				categories: HierarchicalCategoryStatisticsDto[]
+			) => {
+				categories.forEach((cat) => {
+					allCategoryIds.add(cat.categoryId);
+					if (cat.children) {
+						collectAllIds(cat.children);
+					}
+				});
+			};
+			collectAllIds(bookStats.byHierarchicalCategory);
+			setExpandedCategories(allCategoryIds);
+		}
+	}, [bookStats?.byHierarchicalCategory]);
+
+	// Toggle expand/collapse for a category
+	const toggleCategory = (categoryId: string) => {
+		setExpandedCategories((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(categoryId)) {
+				newSet.delete(categoryId);
+			} else {
+				newSet.add(categoryId);
+			}
+			return newSet;
+		});
+	};
+
+	// Render hierarchical category rows
+	const renderCategoryRow = (
+		category: HierarchicalCategoryStatisticsDto,
+		level: number = 0
+	): React.ReactElement => {
+		const isExpanded = expandedCategories.has(category.categoryId);
+		const hasChildren = category.children && category.children.length > 0;
+
+		return (
+			<>
+				<tr key={category.categoryId} className="border-b hover:bg-gray-50">
+					<td
+						className="p-2 font-medium"
+						style={{ paddingLeft: `${level * 20 + 8}px` }}
+					>
+						<div className="flex items-center gap-2">
+							{hasChildren ? (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-6 w-6 p-0"
+									onClick={() => toggleCategory(category.categoryId)}
+								>
+									{isExpanded ? (
+										<ChevronDown className="h-4 w-4" />
+									) : (
+										<ChevronRight className="h-4 w-4" />
+									)}
+								</Button>
+							) : (
+								<div className="w-6" />
+							)}
+							<span className={level === 0 ? 'font-semibold' : 'font-normal'}>
+								{category.categoryName}
+								{level > 0 && (
+									<span className="text-xs text-gray-500 ml-2">
+										(Thể loại con)
+									</span>
+								)}
+							</span>
+						</div>
+					</td>
+					<td className="p-2 text-center">
+						<div className="flex flex-col">
+							<span className="font-medium">{category.bookCount}</span>
+							{category.directBookCount > 0 && (
+								<span className="text-xs text-gray-500">
+									Trực tiếp: {category.directBookCount}
+								</span>
+							)}
+						</div>
+					</td>
+					<td className="p-2 text-center">
+						<div className="flex flex-col">
+							<span className="font-medium">{category.physicalBookCount}</span>
+							{category.directPhysicalBookCount > 0 && (
+								<span className="text-xs text-gray-500">
+									Trực tiếp: {category.directPhysicalBookCount}
+								</span>
+							)}
+						</div>
+					</td>
+					<td className="p-2 text-center">
+						<div className="flex flex-col">
+							<span className="font-medium">{category.ebookCount}</span>
+							{category.directEbookCount > 0 && (
+								<span className="text-xs text-gray-500">
+									Trực tiếp: {category.directEbookCount}
+								</span>
+							)}
+						</div>
+					</td>
+					<td className="p-2 text-center">
+						{bookStats?.totalBooks && bookStats.totalBooks > 0
+							? `${category.percentage.toFixed(1)}%`
+							: '0%'}
+					</td>
+				</tr>
+				{/* Render children if expanded */}
+				{isExpanded &&
+					hasChildren &&
+					category.children?.map((child: HierarchicalCategoryStatisticsDto) =>
+						renderCategoryRow(child, level + 1)
+					)}
+			</>
+		);
+	};
 
 	// Data for charts
 	const typeData = [
@@ -41,12 +178,33 @@ export const BookStats = () => {
 		},
 	];
 
+	// Tạo data cho chart từ hierarchical data
 	const categoryData =
-		bookStats?.byMainCategory?.map((category) => ({
-			name: category.mainCategoryName,
+		bookStats?.byHierarchicalCategory?.map((category) => ({
+			id: category.categoryId,
+			name: category.categoryName,
 			books: category.bookCount,
 			physical: category.physicalBookCount,
 			ebook: category.ebookCount,
+			directBooks: category.directBookCount,
+			directPhysical: category.directPhysicalBookCount,
+			directEbook: category.directEbookCount,
+			level: category.level,
+			isMainCategory: category.isMainCategory,
+			hasChildren: category.children && category.children.length > 0,
+			children:
+				category.children?.map((child) => ({
+					id: child.categoryId,
+					name: child.categoryName,
+					books: child.bookCount,
+					physical: child.physicalBookCount,
+					ebook: child.ebookCount,
+					directBooks: child.directBookCount,
+					directPhysical: child.directPhysicalBookCount,
+					directEbook: child.directEbookCount,
+					level: child.level,
+					isMainCategory: child.isMainCategory,
+				})) || [],
 		})) || [];
 
 	if (isLoading) {
@@ -191,7 +349,7 @@ export const BookStats = () => {
 											cy="50%"
 											labelLine={false}
 											label={({ name, percent }) =>
-												`${name}: ${(percent || 0 * 100).toFixed(0)}%`
+												`${name}: ${((percent || 0) * 100).toFixed(0)}%`
 											}
 											outerRadius={80}
 											fill="#8884d8"
@@ -233,29 +391,152 @@ export const BookStats = () => {
 					</CardContent>
 				</Card>
 
-				{/* Books by Category */}
+				{/* Books by Category - Hierarchical */}
 				<Card>
 					<CardHeader>
-						<CardTitle>Phân bố theo thể loại</CardTitle>
-						<CardDescription>Thống kê sách theo thể loại chính</CardDescription>
+						<CardTitle>Phân bố theo thể loại (Phân cấp)</CardTitle>
+						<CardDescription>
+							Thống kê sách theo cấu trúc phân cấp thể loại. Click vào mũi tên
+							để mở rộng/thu gọn các thể loại con.
+						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<div className="h-64">
-							<ResponsiveContainer width="100%" height="100%">
-								<BarChart data={categoryData}>
-									<CartesianGrid strokeDasharray="3 3" />
-									<XAxis
-										dataKey="name"
-										tick={{ fontSize: 12 }}
-										angle={-45}
-										textAnchor="end"
-										height={60}
-									/>
-									<YAxis />
-									<Tooltip />
-									<Bar dataKey="books" fill="#16ae5b" radius={[4, 4, 0, 0]} />
-								</BarChart>
-							</ResponsiveContainer>
+						<div className="space-y-4">
+							{/* Hierarchical Chart */}
+							<div className="h-64">
+								<ResponsiveContainer width="100%" height="100%">
+									<BarChart data={categoryData}>
+										<CartesianGrid strokeDasharray="3 3" />
+										<XAxis
+											dataKey="name"
+											tick={{ fontSize: 12 }}
+											angle={-45}
+											textAnchor="end"
+											height={60}
+										/>
+										<YAxis />
+										<Tooltip
+											formatter={(value, name) => {
+												if (name === 'books')
+													return [`${value} sách`, 'Tổng sách'];
+												if (name === 'directBooks')
+													return [`${value} sách`, 'Sách trực tiếp'];
+												return [value, name];
+											}}
+											labelFormatter={(label) => `Thể loại: ${label}`}
+										/>
+										<Bar
+											dataKey="books"
+											fill="#16ae5b"
+											radius={[4, 4, 0, 0]}
+											name="Tổng sách"
+										/>
+										<Bar
+											dataKey="directBooks"
+											fill="#22c55e"
+											radius={[4, 4, 0, 0]}
+											name="Sách trực tiếp"
+										/>
+									</BarChart>
+								</ResponsiveContainer>
+							</div>
+
+							{/* Hierarchical List View */}
+							<div className="space-y-2 hidden">
+								<h4 className="text-sm font-medium text-gray-700">
+									Chi tiết theo cấp độ:
+								</h4>
+								<div className="max-h-48 overflow-y-auto space-y-1">
+									{categoryData.map((category, index) => (
+										<div key={index} className="space-y-1">
+											{/* Main Category */}
+											<div className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+												<div className="flex items-center gap-2">
+													{category.hasChildren && (
+														<Button
+															variant="ghost"
+															size="sm"
+															className="h-6 w-6 p-0"
+															onClick={() => toggleCategory(category.id)}
+														>
+															{expandedCategories.has(category.id) ? (
+																<ChevronDown className="h-4 w-4" />
+															) : (
+																<ChevronRight className="h-4 w-4" />
+															)}
+														</Button>
+													)}
+													{!category.hasChildren && <div className="w-6" />}
+													<span className="font-semibold text-sm">
+														{category.name}
+													</span>
+												</div>
+												<div className="flex items-center gap-4 text-sm">
+													<div className="text-center">
+														<div className="font-medium text-green-600">
+															{category.books}
+														</div>
+														<div className="text-xs text-gray-500">Tổng</div>
+													</div>
+													{category.directBooks > 0 && (
+														<div className="text-center">
+															<div className="font-medium text-blue-600">
+																{category.directBooks}
+															</div>
+															<div className="text-xs text-gray-500">
+																Trực tiếp
+															</div>
+														</div>
+													)}
+												</div>
+											</div>
+
+											{/* Children Categories */}
+											{expandedCategories.has(category.id) &&
+												category.children && (
+													<div className="ml-4 space-y-1">
+														{category.children.map((child, childIndex) => (
+															<div
+																key={childIndex}
+																className="flex items-center justify-between p-2 bg-white border rounded-md"
+															>
+																<div className="flex items-center gap-2">
+																	<div className="w-6" />
+																	<span className="text-sm text-gray-600">
+																		{child.name}
+																		<span className="text-xs text-gray-400 ml-1">
+																			(Thể loại con)
+																		</span>
+																	</span>
+																</div>
+																<div className="flex items-center gap-4 text-sm">
+																	<div className="text-center">
+																		<div className="font-medium text-green-600">
+																			{child.books}
+																		</div>
+																		<div className="text-xs text-gray-500">
+																			Tổng
+																		</div>
+																	</div>
+																	{child.directBooks > 0 && (
+																		<div className="text-center">
+																			<div className="font-medium text-blue-600">
+																				{child.directBooks}
+																			</div>
+																			<div className="text-xs text-gray-500">
+																				Trực tiếp
+																			</div>
+																		</div>
+																	)}
+																</div>
+															</div>
+														))}
+													</div>
+												)}
+										</div>
+									))}
+								</div>
+							</div>
 						</div>
 					</CardContent>
 				</Card>
@@ -264,9 +545,10 @@ export const BookStats = () => {
 			{/* Category Details Table */}
 			<Card>
 				<CardHeader>
-					<CardTitle>Chi tiết theo thể loại</CardTitle>
+					<CardTitle>Chi tiết theo thể loại (Phân cấp)</CardTitle>
 					<CardDescription>
-						Bảng chi tiết số lượng sách theo từng thể loại
+						Bảng chi tiết số lượng sách theo cấu trúc phân cấp thể loại. Click
+						vào mũi tên để mở rộng/thu gọn các thể loại con.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -282,29 +564,12 @@ export const BookStats = () => {
 								</tr>
 							</thead>
 							<tbody>
-								{bookStats.byMainCategory?.map((category, index) => (
-									<tr key={index} className="border-b hover:bg-gray-50">
-										<td className="p-2 font-medium">
-											{category.mainCategoryName}
-										</td>
-										<td className="p-2 text-center">{category.bookCount}</td>
-										<td className="p-2 text-center">
-											{category.physicalBookCount}
-										</td>
-										<td className="p-2 text-center">{category.ebookCount}</td>
-										<td className="p-2 text-center">
-											{bookStats.totalBooks > 0
-												? `${(
-														(category.bookCount / bookStats.totalBooks) *
-														100
-												  ).toFixed(1)}%`
-												: '0%'}
-										</td>
-									</tr>
-								)) || (
+								{bookStats.byHierarchicalCategory?.map((category) =>
+									renderCategoryRow(category, 0)
+								) || (
 									<tr>
 										<td colSpan={5} className="p-4 text-center text-gray-500">
-											Chưa có dữ liệu thể loại
+											Chưa có dữ liệu thể loại phân cấp
 										</td>
 									</tr>
 								)}

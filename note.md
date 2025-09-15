@@ -21,8 +21,8 @@ khi mượn sách, trạng thái phải là: "đã đặt mượn", không phả
 14/09
 1. borrow-records: gộp tab "đã gia hạn" + "đang mượn" thành 1
 2. dashboard:
-  + bỏ Chờ phê duyệt
-  + bỏ sắp hết hạn
+  + bỏ Chờ phê duyệt -> done
+  + bỏ sắp hết hạn -> done
   tab book:
     chỉnh lại table Chi tiết theo thể loại theo dạng cha/con expand
   tab user:

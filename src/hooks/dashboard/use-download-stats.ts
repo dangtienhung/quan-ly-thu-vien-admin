@@ -481,10 +481,6 @@ const generateAnalyticsHTML = (
 						<div class="stat-value">${formatValue(borrowStats.activeLoans)}</div>
 					</div>
 					<div class="stat-card">
-						<div class="stat-title">Chờ phê duyệt</div>
-						<div class="stat-value">${formatValue(borrowStats.pendingApproval)}</div>
-					</div>
-					<div class="stat-card">
 						<div class="stat-title">Quá hạn</div>
 						<div class="stat-value">${formatValue(borrowStats.overdueLoans)}</div>
 					</div>

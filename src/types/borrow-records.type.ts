@@ -1,7 +1,6 @@
 export interface BorrowRecordStatsDto {
 	total: number;
 	byStatus: { status: string; count: number }[];
-	pendingApproval: number;
 	borrowed: number;
 	returned: number;
 	overdue: number;

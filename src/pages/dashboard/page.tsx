@@ -30,7 +30,7 @@ export default function Dashboard() {
 				<h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
 				<div className="flex items-center space-x-2">
 					<Button onClick={handleDownloadClick} disabled={isDownloading}>
-						{isDownloading ? 'Đang tạo file...' : 'Download'}
+						{isDownloading ? 'Đang tạo file...' : 'Tải báo cáo'}
 					</Button>
 				</div>
 			</div>
