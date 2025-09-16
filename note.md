@@ -29,7 +29,7 @@ khi mượn sách, trạng thái phải là: "đã đặt mượn", không phả
     thống kế theo loại độc giả -> oke
 3. reservations:
   chung 1 status: phần hết hạn -> Đã hủy
-4. Phân bố theo thể loại -> thống kê chỉ theo parent id
+4. Phân bố theo thể loại -> thống kê chỉ theo parent id -> oke
 5. Quản lý người dùng
 - cả bên phía user cũng không cho điền các thông tin reader (giữ nguyên mã người dùng khi sync), trường k quan trọng set là null
 - chỉnh lại logic excel (có lại bỏ mấy trường import lên, xem lại logic)
@@ -47,3 +47,7 @@ khi mượn sách, trạng thái phải là: "đã đặt mượn", không phả
 10. tab quá hạn trong mượn trả -> bổ sung thêm button download pdf
 11. bổ sung breadcrum bên route: http://localhost:3000/books
 12. bổ sung count book cho từng danh mục
+- Chưa ràng buộc số lượng sách mượn theo bảng reader_types: học sinh vẫn mượn quá được 2 quyển
+- Đang có sách mượn nhưng lại vẫn đặt được sách
+- Đặt mượn sách => physical_copy chuyển thành "Đã đặt trước" -> oke
+- Khi hủy đặt mượn hoặc hết hạn đặt mượn sách thì physical_copy chuyển sang "Sẵn sàng"

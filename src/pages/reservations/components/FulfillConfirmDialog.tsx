@@ -10,12 +10,12 @@ import type {
 	Reservation,
 	ReservationExpiringSoonItem,
 } from '@/types/reservations';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/auth-context';
-import { useState } from 'react';
 
 interface FulfillConfirmDialogProps {
 	open: boolean;
@@ -38,6 +38,17 @@ export const FulfillConfirmDialog: React.FC<FulfillConfirmDialogProps> = ({
 	const [isNotesEmpty, setIsNotesEmpty] = useState(true);
 
 	const { user } = useAuth();
+
+	// Initialize notes with reader_note when dialog opens
+	useEffect(() => {
+		if (open && reservation?.reader_notes) {
+			setNotes(reservation.reader_notes);
+			setIsNotesEmpty(reservation.reader_notes.trim() === '');
+		} else if (open) {
+			setNotes('');
+			setIsNotesEmpty(true);
+		}
+	}, [open, reservation?.reader_notes]);
 
 	if (!reservation) return null;
 
@@ -121,6 +132,11 @@ export const FulfillConfirmDialog: React.FC<FulfillConfirmDialogProps> = ({
 							className="min-h-[80px] resize-none"
 							disabled={isLoading}
 						/>
+						{reservation.reader_notes && (
+							<p className="text-xs text-gray-500">
+								Đã tự động điền ghi chú từ độc giả
+							</p>
+						)}
 						{!isNotesEmpty && (
 							<p className="text-xs text-gray-500">{notes.length}/500 ký tự</p>
 						)}

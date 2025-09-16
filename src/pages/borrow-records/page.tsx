@@ -1,4 +1,16 @@
 import {
+	BorrowRecordsTabs,
+	PageHeader,
+	RecordDetailsDialog,
+	SearchBar,
+} from './components';
+import type { CreateFineRequest, FineType } from '@/types/fines';
+import {
+	createSearchParams,
+	useNavigate,
+	useSearchParams,
+} from 'react-router-dom';
+import {
 	useApproveBorrowRecord,
 	useBorrowRecordsByStatus,
 	useBorrowRecordsStats,
@@ -9,33 +21,21 @@ import {
 	useReturnBook,
 	useSendReminders,
 } from '@/hooks/borrow-records';
-import type { CreateFineRequest, FineType } from '@/types/fines';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-	createSearchParams,
-	useNavigate,
-	useSearchParams,
-} from 'react-router-dom';
-import {
-	BorrowRecordsTabs,
-	PageHeader,
-	RecordDetailsDialog,
-	SearchBar,
-} from './components';
 
-import { BorrowRecordsAPI } from '@/apis/borrow-records';
-import { ReservationsAPI } from '@/apis/reservations';
-import { useCreateFine } from '@/hooks/fines/use-create-fine';
-import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
-import type { BorrowStatus } from '@/types/borrow-records';
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { ApproveRejectDialog } from './components/approve-reject-dialog';
+import { BorrowRecordsAPI } from '@/apis/borrow-records';
+import type { BorrowStatus } from '@/types/borrow-records';
 import { CreateBorrowRecordDialog } from './components/create-borrow-record-dialog';
 import { DeleteConfirmDialog } from './components/delete-confirm-dialog';
 import { RenewBookDialog } from './components/renew-book-dialog';
+import { ReservationsAPI } from '@/apis/reservations';
 import { ReturnBookDialog } from './components/return-book-dialog';
 import { StatisticsCards } from './components/statistics-cards';
+import { toast } from 'sonner';
+import { useCreateFine } from '@/hooks/fines/use-create-fine';
+import { useState } from 'react';
+import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
 
 export default function BorrowRecordsPage() {
 	const navigate = useNavigate();
@@ -89,6 +89,21 @@ export default function BorrowRecordsPage() {
 		enabled: true, // Luôn enable để phản ứng với thay đổi params
 	});
 
+	// Hook để lấy dữ liệu "renewed" khi đang ở tab "borrowed"
+	const {
+		borrowRecords: renewedRecords,
+		meta: renewedMeta,
+		isLoading: isLoadingRenewed,
+	} = useBorrowRecordsByStatus({
+		params: {
+			status: 'renewed' as BorrowStatus,
+			page: Number(page),
+			limit: Number(limit),
+			q: searchQuery,
+		},
+		enabled: status === 'borrowed', // Chỉ fetch khi đang ở tab "borrowed"
+	});
+
 	// Mutation hooks
 	const { createBorrowRecord, isCreating } = useCreateBorrowRecord();
 	const { returnBook, isReturning } = useReturnBook();
@@ -109,13 +124,7 @@ export default function BorrowRecordsPage() {
 		},
 		onSuccess: (updatedRecord) => {
 			toast.success('Đã cập nhật trạng thái thành quá hạn!');
-
-			// Invalidate queries để refresh data
-			queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-			queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
-			queryClient.invalidateQueries({
-				queryKey: ['borrow-records-by-status', borrowRecordStatus],
-			});
+			invalidateAllQueries();
 		},
 		onError: (error: Error) => {
 			toast.error('Có lỗi xảy ra khi cập nhật trạng thái quá hạn!');
@@ -133,7 +142,29 @@ export default function BorrowRecordsPage() {
 
 	// Helper function to get current data based on active tab and filters
 	const getCurrentData = () => {
-		// Sử dụng statusRecords cho tất cả các tab vì hook useBorrowRecordsByStatus đã được enable
+		// Nếu đang ở tab "borrowed", kết hợp dữ liệu "borrowed" và "renewed"
+		if (status === 'borrowed') {
+			const combinedRecords = [
+				...(statusRecords || []),
+				...(renewedRecords || []),
+			];
+			const combinedMeta = {
+				...statusMeta,
+				totalItems:
+					(statusMeta?.totalItems || 0) + (renewedMeta?.totalItems || 0),
+				totalPages: Math.ceil(
+					((statusMeta?.totalItems || 0) + (renewedMeta?.totalItems || 0)) /
+						(Number(limit) || 20)
+				),
+			};
+			return {
+				records: combinedRecords,
+				meta: combinedMeta,
+				isLoading: isLoadingStatus || isLoadingRenewed,
+			};
+		}
+
+		// Sử dụng statusRecords cho các tab khác
 		return {
 			records: statusRecords,
 			meta: statusMeta,
@@ -142,6 +173,29 @@ export default function BorrowRecordsPage() {
 	};
 
 	const { records, isLoading } = getCurrentData();
+
+	// Helper function to invalidate all relevant queries
+	const invalidateAllQueries = () => {
+		queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
+		queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
+		queryClient.invalidateQueries({
+			queryKey: ['borrow-records-by-status', borrowRecordStatus],
+		});
+		// Also invalidate renewed records if we're on borrowed tab
+		if (status === 'borrowed') {
+			queryClient.invalidateQueries({
+				queryKey: [
+					'borrow-records-by-status',
+					{
+						status: 'renewed' as BorrowStatus,
+						page: Number(page),
+						limit: Number(limit),
+						q: searchQuery,
+					},
+				],
+			});
+		}
+	};
 
 	// Function to handle update overdue status
 	const handleUpdateOverdue = (record: any) => {
@@ -178,8 +232,7 @@ export default function BorrowRecordsPage() {
 			onSuccess: () => {
 				// Invalidate queries để refresh data
 				queryClient.invalidateQueries({ queryKey: ['fines'] });
-				queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-				queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
+				invalidateAllQueries();
 			},
 		});
 	};
@@ -188,16 +241,7 @@ export default function BorrowRecordsPage() {
 		createBorrowRecord(data, {
 			onSuccess: () => {
 				setShowCreateDialog(false);
-
-				// Invalidate queries to refresh data
-				queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-				queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
-				queryClient.invalidateQueries({
-					queryKey: ['borrow-records-by-status', borrowRecordStatus],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ['borrow-records-by-status', borrowRecordStatus],
-				});
+				invalidateAllQueries();
 			},
 		});
 	};
@@ -212,15 +256,7 @@ export default function BorrowRecordsPage() {
 						onSuccess: () => {
 							setShowReturnDialog(false);
 							setRecordToReturn(null);
-
-							// Invalidate queries to refresh data
-							queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-stats'],
-							});
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-by-status', borrowRecordStatus],
-							});
+							invalidateAllQueries();
 						},
 					}
 				);
@@ -262,15 +298,7 @@ export default function BorrowRecordsPage() {
 						onSuccess: () => {
 							setShowRenewDialog(false);
 							setRecordToRenew(null);
-
-							// Invalidate queries to refresh data
-							queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-stats'],
-							});
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-by-status', borrowRecordStatus],
-							});
+							invalidateAllQueries();
 						},
 					}
 				);
@@ -313,13 +341,7 @@ export default function BorrowRecordsPage() {
 				onSuccess: () => {
 					setShowDeleteDialog(false);
 					setRecordToDelete(null);
-
-					// Invalidate queries to refresh data
-					queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-					queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
-					queryClient.invalidateQueries({
-						queryKey: ['borrow-records-by-status', borrowRecordStatus],
-					});
+					invalidateAllQueries();
 				},
 			});
 		}
@@ -381,15 +403,7 @@ export default function BorrowRecordsPage() {
 							}
 							setShowApproveRejectDialog(false);
 							setRecordToApproveReject(null);
-
-							// Invalidate queries to refresh data
-							queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-stats'],
-							});
-							queryClient.invalidateQueries({
-								queryKey: ['borrow-records-by-status', borrowRecordStatus],
-							});
+							invalidateAllQueries();
 						},
 					}
 				);
@@ -431,15 +445,7 @@ export default function BorrowRecordsPage() {
 					onSuccess: () => {
 						setShowApproveRejectDialog(false);
 						setRecordToApproveReject(null);
-
-						// Invalidate queries to refresh data
-						queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
-						queryClient.invalidateQueries({
-							queryKey: ['borrow-records-stats'],
-						});
-						queryClient.invalidateQueries({
-							queryKey: ['borrow-records-by-status', borrowRecordStatus],
-						});
+						invalidateAllQueries();
 					},
 				}
 			);
@@ -570,7 +576,7 @@ export default function BorrowRecordsPage() {
 			<BorrowRecordsTabs
 				status={status}
 				onTabChange={handleSelectedTab}
-				records={statusRecords}
+				records={records}
 				isLoading={isLoadingStatus}
 				onApprove={handleApproveRecord}
 				onReturn={openReturnDialog}

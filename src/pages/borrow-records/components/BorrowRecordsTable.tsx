@@ -1,13 +1,4 @@
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '@/components/ui/table';
-import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
-import {
 	AlertTriangle,
 	Bell,
 	BookOpen,
@@ -18,11 +9,20 @@ import {
 	Receipt,
 	ThumbsUp,
 } from 'lucide-react';
+import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table';
 import { useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { BorrowRecordDetailsDialog } from './BorrowRecordDetailsDialog';
+import { Button } from '@/components/ui/button';
 
 interface BorrowRecordsTableProps {
 	records: any[];
@@ -91,10 +91,10 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 			}
 
 			const overdueRecords = records.filter((record) => {
-				// Chỉ xử lý các record có status 'borrowed' và bị quá hạn
+				// Chỉ xử lý các record có status 'borrowed' hoặc 'renewed' và bị quá hạn
 				// Và chưa được xử lý trước đó
 				return (
-					record.status === 'borrowed' &&
+					(record.status === 'borrowed' || record.status === 'renewed') &&
 					record.due_date &&
 					new Date(record.due_date) < new Date() &&
 					!processedRecordsRef.current.has(record.id)
@@ -214,7 +214,19 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 		return (
 			<TableRow key={record.id}>
 				<TableCell className="font-medium">
-					{record.physicalCopy?.book?.title || 'Không có tên sách'}
+					<div className="gap-2 items-center w-full flex">
+						<img
+							src={record.physicalCopy?.book?.cover_image}
+							alt={record.physicalCopy?.book?.title}
+							className="w-10 h-14 object-cover rounded-md"
+						/>
+						<div className="gap-2">
+							{record.physicalCopy?.book?.title || 'Không có tên sách'}
+							<div className="text-xs text-gray-500">
+								ISBN: {record.physicalCopy?.book?.isbn || 'Không có ISBN'}
+							</div>
+						</div>
+					</div>
 				</TableCell>
 				<TableCell>
 					{record.reader?.fullName || 'Không có tên độc giả'}
@@ -235,18 +247,19 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 						<span className="ml-1">{getStatusText(record.status)}</span>
 					</Badge>
 					{/* Hiển thị cảnh báo quá hạn nếu cần */}
-					{isRecordOverdue && record.status === 'borrowed' && (
-						<div className="mt-1">
-							<Badge variant="destructive" className="text-xs">
-								⚠️ Cần cập nhật trạng thái thành "Quá hạn"
-							</Badge>
-						</div>
-					)}
+					{isRecordOverdue &&
+						(record.status === 'borrowed' || record.status === 'renewed') && (
+							<div className="mt-1">
+								<Badge variant="destructive" className="text-xs">
+									⚠️ Cần cập nhật trạng thái thành "Quá hạn"
+								</Badge>
+							</div>
+						)}
 				</TableCell>
 				<TableCell>
 					{record.status === 'overdue' && (
 						<span className="text-red-600 font-medium">
-							{calculateDaysOverdue(record.due_date)} ngày
+							{calculateDaysOverdue(record.due_date)} ngày quá hạn
 						</span>
 					)}
 					{record.status === 'borrowed' && (
@@ -259,12 +272,25 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 						>
 							{isRecordOverdue
 								? `${calculateDaysOverdue(record.due_date)} ngày quá hạn`
-								: `${calculateDaysUntilDue(record.due_date)} ngày`}
+								: `Còn ${calculateDaysUntilDue(record.due_date)} ngày`}
+						</span>
+					)}
+					{record.status === 'renewed' && (
+						<span
+							className={
+								isRecordOverdue
+									? 'text-red-600 font-medium'
+									: 'text-purple-600 font-medium'
+							}
+						>
+							{isRecordOverdue
+								? `${calculateDaysOverdue(record.due_date)} ngày quá hạn`
+								: `Còn ${calculateDaysUntilDue(record.due_date)} ngày`}
 						</span>
 					)}
 					{record.status === 'returned' && record.return_date && (
 						<span className="text-green-600">
-							{formatDate(record.return_date)}
+							Đã trả ngày {formatDate(record.return_date)}
 						</span>
 					)}
 				</TableCell>
@@ -442,6 +468,19 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 						{/* đã gia hạn cũng sẽ có nút trả sách */}
 						{record.status === 'renewed' && (
 							<>
+								{/* Button cập nhật trạng thái quá hạn cho renewed records */}
+								{isRecordOverdue && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => onUpdateOverdue(record)}
+										title="Cập nhật trạng thái thành quá hạn"
+										className="text-red-600 hover:text-red-700"
+										disabled={isUpdatingOverdue}
+									>
+										<Clock className="h-4 w-4" />
+									</Button>
+								)}
 								<Button
 									variant="ghost"
 									size="sm"

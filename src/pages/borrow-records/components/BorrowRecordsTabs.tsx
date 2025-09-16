@@ -49,7 +49,6 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 				{/* <TabsTrigger value="pending_approval">Chờ phê duyệt</TabsTrigger>  */}
 				<TabsTrigger value="borrowed">Đang mượn</TabsTrigger>
 				<TabsTrigger value="returned">Đã trả</TabsTrigger>
-				<TabsTrigger value="renewed">Đã gia hạn</TabsTrigger>
 				<TabsTrigger value="overdue">Quá hạn</TabsTrigger>
 			</TabsList>
 

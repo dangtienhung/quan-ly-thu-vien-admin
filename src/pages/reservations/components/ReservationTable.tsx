@@ -1,3 +1,5 @@
+import { Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
+import type { Reservation, ReservationStatus } from '@/types/reservations';
 import {
 	Table,
 	TableBody,
@@ -6,16 +8,14 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
-import type { Reservation, ReservationStatus } from '@/types/reservations';
-import { Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { isExpiredByEndOfDay } from '@/utils/borrow-utils';
-import { useState } from 'react';
 import { CancelConfirmDialog } from './CancelConfirmDialog';
 import { ExpireConfirmDialog } from './ExpireConfirmDialog';
 import { FulfillConfirmDialog } from './FulfillConfirmDialog';
+import { isExpiredByEndOfDay } from '@/utils/borrow-utils';
+import { useState } from 'react';
 
 interface ReservationTableProps {
 	reservations: Reservation[];
@@ -194,17 +194,27 @@ export const ReservationTable: React.FC<ReservationTableProps> = ({
 					{reservations.map((reservation: Reservation) => (
 						<TableRow key={reservation.id}>
 							<TableCell className="font-medium">
-								<div className="flex items-center gap-2">
+								<div className="gap-2 items-center w-full flex">
 									<img
 										src={reservation.book?.cover_image}
 										alt={reservation.book?.title}
 										className="w-10 h-14 object-cover rounded-md"
 									/>
-									{reservation.book?.title || 'Không có tên sách'}
+									<div className="gap-2">
+										{reservation.book?.title || 'Không có tên sách'}
+										<div className="text-xs text-gray-500">
+											ISBN: {reservation.book?.isbn || 'Không có ISBN'}
+										</div>
+									</div>
 								</div>
 							</TableCell>
 							<TableCell>
-								{reservation.reader?.fullName || 'Không có tên độc giả'}
+								<div className="gap-2 items-center w-full flex">
+									{reservation.reader?.fullName || 'Không có tên độc giả'}
+								</div>
+								<p className="text-xs text-gray-500">
+									{reservation.reader?.cardNumber || 'Không có mã thẻ'}
+								</p>
 							</TableCell>
 							<TableCell>{formatDate(reservation.reservation_date)}</TableCell>
 							<TableCell>
@@ -260,6 +270,7 @@ export const ReservationTable: React.FC<ReservationTableProps> = ({
 												// Đặt trước còn hạn - hiển thị đầy đủ button
 												<>
 													<Button
+														variant="ghost"
 														size="sm"
 														onClick={() => handleFulfillClick(reservation)}
 														disabled={
@@ -271,15 +282,15 @@ export const ReservationTable: React.FC<ReservationTableProps> = ({
 																: ''
 														}
 													>
-														Thực hiện
+														<CheckCircle className="h-4 w-4 text-green-600" />
 													</Button>
 													<Button
-														variant="outline"
+														variant="ghost"
 														size="sm"
 														onClick={() => handleCancelClick(reservation)}
 														disabled={isCancelPending}
 													>
-														Hủy
+														<XCircle className="h-4 w-4 text-red-600" />
 													</Button>
 												</>
 											)}
