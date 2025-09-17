@@ -73,7 +73,7 @@ export const FinesAPI = {
 		data: {
 			amount: number;
 			paymentMethod: string;
-			transactionId?: string;
+			librarian_notes?: string;
 		}
 	): Promise<FineResponse> => {
 		const res = await instance.patch(`/api/fines/${id}/pay`, data);

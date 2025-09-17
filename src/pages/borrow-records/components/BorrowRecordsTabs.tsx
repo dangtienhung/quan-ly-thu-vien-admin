@@ -13,6 +13,11 @@ interface BorrowRecordsTabsProps {
 	onSendNotification: (record: any) => void;
 	onUpdateOverdue: (record: any) => void;
 	onCreateFine: (record: any) => void;
+	onCreateFineAndUpdateOverdue: (data: {
+		amount: number;
+		reason: string;
+		record: any;
+	}) => void;
 	isApproving: boolean;
 	isReturning: boolean;
 	isRenewing: boolean;
@@ -34,6 +39,7 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 	onSendNotification,
 	onUpdateOverdue,
 	onCreateFine,
+	onCreateFineAndUpdateOverdue,
 	isApproving,
 	isReturning,
 	isRenewing,
@@ -62,6 +68,7 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 					onSendNotification={onSendNotification}
 					onUpdateOverdue={onUpdateOverdue}
 					onCreateFine={onCreateFine}
+					onCreateFineAndUpdateOverdue={onCreateFineAndUpdateOverdue}
 					isApproving={isApproving}
 					isReturning={isReturning}
 					isRenewing={isRenewing}

@@ -1,19 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Plus, Search } from 'lucide-react';
-import type { Fine, FineWithBorrowDetails } from '@/types/fines';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Fine, FineWithBorrowDetails } from '@/types/fines';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { FileText, Plus, Search } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { CreateFineDialog } from './components/create-fine-dialog';
-import { DataTable } from '@/components/ui/data-table';
-import { FineStatisticsCards } from './components/fine-statistics-cards';
 import { FinesAPI } from '@/apis/fines';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
-import { PayFineDialog } from './components/pay-fine-dialog';
-import { columns } from './components/columns';
-import { toast } from 'sonner';
+import { useExportFines } from '@/hooks/fines/use-export-fines';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { columns } from './components/columns';
+import { CreateFineDialog } from './components/create-fine-dialog';
+import { ExportConfirmDialog } from './components/export-confirm-dialog';
+import { FineStatisticsCards } from './components/fine-statistics-cards';
+import { PayFineDialog } from './components/pay-fine-dialog';
 
 export default function FinesPage() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -24,8 +26,12 @@ export default function FinesPage() {
 		useState<FineWithBorrowDetails | null>(null);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [showPayDialog, setShowPayDialog] = useState(false);
+	const [showExportDialog, setShowExportDialog] = useState(false);
 
 	const queryClient = useQueryClient();
+
+	// Hook để export báo cáo
+	const { isExporting, exportFinesPDF } = useExportFines();
 
 	// Query để lấy danh sách fines
 	const {
@@ -123,6 +129,27 @@ export default function FinesPage() {
 		exportMutation.mutate();
 	};
 
+	// Function to handle export PDF
+	const handleExportPDF = () => {
+		if (!filteredFines || filteredFines.length === 0) {
+			toast.error('Không có dữ liệu để xuất báo cáo');
+			return;
+		}
+		setShowExportDialog(true);
+	};
+
+	// Function to confirm export
+	const handleConfirmExport = async () => {
+		try {
+			await exportFinesPDF(filteredFines, statusFilter);
+			toast.success('Xuất báo cáo PDF thành công!');
+			setShowExportDialog(false);
+		} catch (error) {
+			console.error('Error exporting PDF:', error);
+			toast.error('Có lỗi xảy ra khi xuất báo cáo PDF');
+		}
+	};
+
 	// Sử dụng data từ search hoặc fines tùy theo trạng thái
 	const fines = searchQuery.trim()
 		? searchResponse?.data || []
@@ -147,17 +174,36 @@ export default function FinesPage() {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
+					{/* <Button
+						variant="outline"
+						onClick={handleExportPDF}
+						disabled={!filteredFines || filteredFines.length === 0}
+						title="Xuất báo cáo PDF"
+					>
+						<FileText className="h-4 w-4" />
+					</Button> */}
 					<Button
+						variant="outline"
+						onClick={handleExportPDF}
+						disabled={!filteredFines || filteredFines.length === 0}
+						className="flex items-center gap-2"
+					>
+						<FileText className="h-4 w-4" />
+						Tải báo cáo
+					</Button>
+					{/* <Button
 						variant="outline"
 						onClick={handleExport}
 						disabled={exportMutation.isPending}
+						title="Xuất báo cáo Excel"
 					>
-						<Download className="h-4 w-4 mr-2" />
-						{exportMutation.isPending ? 'Đang xuất...' : 'Xuất báo cáo'}
-					</Button>
-					<Button onClick={() => setShowCreateDialog(true)}>
-						<Plus className="h-4 w-4 mr-2" />
-						Tạo phạt mới
+						<FileSpreadsheet className="h-4 w-4" />
+					</Button> */}
+					<Button
+						onClick={() => setShowCreateDialog(true)}
+						title="Tạo phạt mới"
+					>
+						<Plus className="h-4 w-4" />
 					</Button>
 				</div>
 			</div>
@@ -184,9 +230,12 @@ export default function FinesPage() {
 								/>
 							</div>
 						</div>
-						<Button onClick={handleSearch} disabled={isSearching}>
-							<Search className="h-4 w-4 mr-2" />
-							{isSearching ? 'Đang tìm...' : 'Tìm kiếm'}
+						<Button
+							onClick={handleSearch}
+							disabled={isSearching}
+							title="Tìm kiếm phạt"
+						>
+							<Search className="h-4 w-4" />
 						</Button>
 					</div>
 				</CardContent>
@@ -233,6 +282,16 @@ export default function FinesPage() {
 				onOpenChange={setShowPayDialog}
 				fine={selectedFine}
 				onSuccess={handleFinePaid}
+			/>
+
+			{/* Export Confirm Dialog */}
+			<ExportConfirmDialog
+				open={showExportDialog}
+				onOpenChange={setShowExportDialog}
+				onConfirm={handleConfirmExport}
+				statusFilter={statusFilter}
+				isLoading={isExporting}
+				finesCount={filteredFines?.length || 0}
 			/>
 		</div>
 	);

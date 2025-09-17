@@ -16,8 +16,6 @@ export const useBorrowRecordsByStatus = (
 		queryKey: ['borrow-records-by-status', params],
 		queryFn: () => BorrowRecordsAPI.getByStatus(params),
 		enabled,
-		staleTime: 5 * 60 * 1000, // 5 minutes
-		gcTime: 10 * 60 * 1000, // 10 minutes
 	});
 
 	return {

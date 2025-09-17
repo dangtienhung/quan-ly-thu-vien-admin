@@ -1,4 +1,13 @@
 import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table';
+import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
+import {
 	AlertTriangle,
 	Bell,
 	BookOpen,
@@ -9,20 +18,12 @@ import {
 	Receipt,
 	ThumbsUp,
 } from 'lucide-react';
-import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '@/components/ui/table';
 import { useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { BorrowRecordDetailsDialog } from './BorrowRecordDetailsDialog';
 import { Button } from '@/components/ui/button';
+import { BorrowRecordDetailsDialog } from './BorrowRecordDetailsDialog';
+import { CreateFineDialog } from './CreateFineDialog';
 
 interface BorrowRecordsTableProps {
 	records: any[];
@@ -33,6 +34,11 @@ interface BorrowRecordsTableProps {
 	onSendNotification: (record: any) => void;
 	onUpdateOverdue: (record: any) => void;
 	onCreateFine: (record: any) => void;
+	onCreateFineAndUpdateOverdue: (data: {
+		amount: number;
+		reason: string;
+		record: any;
+	}) => void;
 	isApproving: boolean;
 	isReturning: boolean;
 	isRenewing: boolean;
@@ -53,6 +59,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	onSendNotification,
 	onUpdateOverdue,
 	onCreateFine,
+	onCreateFineAndUpdateOverdue,
 	isApproving,
 	isReturning,
 	isRenewing,
@@ -69,15 +76,21 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 		null
 	);
 
+	// State for create fine dialog
+	const [createFineDialogOpen, setCreateFineDialogOpen] = useState(false);
+	const [selectedFineRecord, setSelectedFineRecord] =
+		useState<BorrowRecord | null>(null);
+
 	// Ref để theo dõi các record đã được xử lý tự động
 	const processedRecordsRef = useRef<Set<string>>(new Set());
 
-	// Logic tự động cập nhật trạng thái quá hạn
+	// Logic tự động mở dialog tạo phiếu phạt cho record quá hạn
 	useEffect(() => {
-		// Chỉ tự động cập nhật khi ở tab "all" hoặc "borrowed"
+		// Chỉ tự động mở dialog khi ở tab "all" hoặc "borrowed"
 		if (
 			records.length > 0 &&
 			!isUpdatingOverdue &&
+			!isCreatingFine &&
 			(currentStatus === 'all' || currentStatus === 'borrowed')
 		) {
 			// Reset processed records nếu danh sách records thay đổi hoàn toàn
@@ -101,18 +114,24 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 				);
 			});
 
-			// Tự động cập nhật từng record quá hạn với delay để tránh gọi API quá nhiều
-			overdueRecords.forEach((record, index) => {
-				setTimeout(() => {
-					console.log(
-						`Tự động cập nhật trạng thái quá hạn cho record: ${record.id}`
-					);
-					processedRecordsRef.current.add(record.id);
-					onUpdateOverdue(record);
-				}, index * 500); // Delay 500ms giữa mỗi lần gọi
-			});
+			// Tự động mở dialog tạo phiếu phạt cho record quá hạn đầu tiên
+			if (overdueRecords.length > 0 && !createFineDialogOpen) {
+				const firstOverdueRecord = overdueRecords[0];
+				console.log(
+					`Tự động mở dialog tạo phiếu phạt cho record quá hạn: ${firstOverdueRecord.id}`
+				);
+				processedRecordsRef.current.add(firstOverdueRecord.id);
+				setSelectedFineRecord(firstOverdueRecord);
+				setCreateFineDialogOpen(true);
+			}
 		}
-	}, [records, isUpdatingOverdue, onUpdateOverdue]);
+	}, [
+		records,
+		isUpdatingOverdue,
+		isCreatingFine,
+		currentStatus,
+		createFineDialogOpen,
+	]);
 
 	const getStatusColor = (status: BorrowStatus) => {
 		const colors: Record<BorrowStatus, string> = {
@@ -205,6 +224,17 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	const handleViewDetails = (record: any) => {
 		setSelectedRecord(record);
 		setDetailsDialogOpen(true);
+	};
+
+	// Handler for creating fine and updating overdue status
+	const handleCreateFineAndUpdateOverdue = (data: {
+		amount: number;
+		reason: string;
+		record: any;
+	}) => {
+		onCreateFineAndUpdateOverdue(data);
+		setCreateFineDialogOpen(false);
+		setSelectedFineRecord(null);
 	};
 
 	const renderBorrowRecordRow = (record: any) => {
@@ -429,7 +459,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 								>
 									<CheckCircle className="h-4 w-4 text-green-600" />
 								</Button>
-								<Button
+								{/* <Button
 									variant="ghost"
 									size="sm"
 									onClick={() => onRenew(record)}
@@ -437,9 +467,9 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									disabled={isRenewing}
 								>
 									<Calendar className="h-4 w-4 text-blue-600" />
-								</Button>
+								</Button> */}
 								{/* Button tạo phiếu phạt - chỉ hiển thị ở tab overdue */}
-								{currentStatus === 'overdue' && (
+								{/* {currentStatus === 'overdue' && (
 									<Button
 										variant="ghost"
 										size="sm"
@@ -450,9 +480,9 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									>
 										<Receipt className="h-4 w-4" />
 									</Button>
-								)}
+								)} */}
 								{/* Notification button for overdue books */}
-								<Button
+								{/* <Button
 									variant="ghost"
 									size="sm"
 									onClick={() => onSendNotification(record)}
@@ -461,7 +491,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									disabled={isSendingReminders}
 								>
 									<Bell className="h-4 w-4" />
-								</Button>
+								</Button> */}
 							</>
 						)}
 
@@ -537,6 +567,15 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 				open={detailsDialogOpen}
 				onOpenChange={setDetailsDialogOpen}
 				record={selectedRecord}
+			/>
+
+			{/* Create Fine Dialog */}
+			<CreateFineDialog
+				open={createFineDialogOpen}
+				onOpenChange={setCreateFineDialogOpen}
+				record={selectedFineRecord}
+				onConfirm={handleCreateFineAndUpdateOverdue}
+				isLoading={isCreatingFine}
 			/>
 		</>
 	);

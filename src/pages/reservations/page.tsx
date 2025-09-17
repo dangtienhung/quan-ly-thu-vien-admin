@@ -1,3 +1,4 @@
+import { NotificationsAPI, ReservationsAPI } from '@/apis';
 import { Card, CardContent } from '@/components/ui/card';
 import {
 	useCancelReservation,
@@ -27,7 +28,6 @@ import {
 	ReservationTabs,
 } from './components';
 
-import { NotificationsAPI } from '@/apis';
 import { BorrowRecordsAPI } from '@/apis/borrow-records';
 import { PhysicalCopiesAPI } from '@/apis/physical-copies';
 import { useBorrowRecordsByStatus } from '@/hooks/borrow-records';
@@ -105,15 +105,19 @@ export default function ReservationsPage() {
 	const isBlockedByExpiredReservations = hasExpiredReservations;
 
 	// Thông báo cảnh báo khi có đặt trước quá hạn
-	useEffect(() => {
-		if (hasExpiredReservations) {
-			toast.warning('🚨 CÓ ĐẶT TRƯỚC QUÁ HẠN!', {
-				description:
-					'Bạn phải hủy hết tất cả đặt trước quá hạn trước khi có thể thao tác với các đặt trước còn hạn.',
-				duration: hasExpiredReservations ? Infinity : 5000,
-			});
-		}
-	}, [hasExpiredReservations]);
+	// useEffect(() => {
+	// 	if (hasExpiredReservations) {
+	// 		toast.warning('🚨 CÓ ĐẶT TRƯỚC QUÁ HẠN!', {
+	// 			description: (
+	// 				<span className="text-red-500">
+	// 					Bạn phải hủy hết tất cả đặt trước quá hạn trước khi có thể thao tác
+	// 					với các đặt trước còn hạn.
+	// 				</span>
+	// 			),
+	// 			duration: hasExpiredReservations ? Infinity : 5000,
+	// 		});
+	// 	}
+	// }, [hasExpiredReservations]);
 
 	// Tự động chuyển tab khi có đặt trước quá hạn
 	useEffect(() => {
@@ -157,45 +161,28 @@ export default function ReservationsPage() {
 					}
 
 					try {
-						// 1. Tìm borrow record tương ứng với reservation này
-						const relatedBorrowRecord = statusRecords.find((record) => {
-							return (
-								expiredReservation.reader_id === record.reader_id &&
-								expiredReservation.book_id === record.physicalCopy?.book_id &&
-								expiredReservation.physical_copy_id === record.physicalCopy?.id
+						// 3. Update physical copy status thành 'available' nếu có
+						if (expiredReservation.physical_copy_id) {
+							await PhysicalCopiesAPI.updateStatus(
+								expiredReservation.physical_copy_id,
+								{
+									status: 'available',
+									notes: `Đặt trước đã hết hạn - Trả về trạng thái sẵn sàng`,
+								}
 							);
-						});
+						}
 
-						if (relatedBorrowRecord) {
-							// 2. Update borrow record status thành 'cancelled'
-							await BorrowRecordsAPI.update(relatedBorrowRecord.id, {
-								status: 'cancelled',
-								return_notes: `Đặt trước đã hết hạn - ${user?.username}`,
+						// 4. Gửi thông báo cho độc giả về việc đặt trước đã hết hạn
+						try {
+							NotificationsAPI.sendReminders({
+								readerId: expiredReservation.reader_id,
+								customMessage: `Xin chào! Đặt trước sách "${expiredReservation.book?.title}" của bạn đã hết hạn. Sách sẽ được trả về kho và có thể được đặt trước lại nếu cần thiết.`,
 							});
-
-							// 3. Update physical copy status thành 'available' nếu có
-							if (expiredReservation.physical_copy_id) {
-								await PhysicalCopiesAPI.updateStatus(
-									expiredReservation.physical_copy_id,
-									{
-										status: 'available',
-										notes: `Đặt trước đã hết hạn - Trả về trạng thái sẵn sàng`,
-									}
-								);
-							}
-
-							// 4. Gửi thông báo cho độc giả về việc đặt trước đã hết hạn
-							try {
-								NotificationsAPI.sendReminders({
-									readerId: expiredReservation.reader_id,
-									customMessage: `Xin chào! Đặt trước sách "${expiredReservation.book?.title}" của bạn đã hết hạn. Sách sẽ được trả về kho và có thể được đặt trước lại nếu cần thiết.`,
-								});
-							} catch (error) {
-								console.error('Lỗi gửi thông báo:', error);
-								toast.warning(
-									'Đã đánh dấu hết hạn nhưng không thể gửi thông báo đến độc giả.'
-								);
-							}
+						} catch (error) {
+							console.error('Lỗi gửi thông báo:', error);
+							toast.warning(
+								'Đã đánh dấu hết hạn nhưng không thể gửi thông báo đến độc giả.'
+							);
 						}
 
 						// 5. Invalidate queries để refresh data
@@ -258,11 +245,56 @@ export default function ReservationsPage() {
 		);
 	};
 
+	useEffect(() => {
+		const updateExpiredReservations = async () => {
+			for (const reservation of reservations) {
+				if (
+					reservation.status === 'pending' &&
+					isExpiredByEndOfDay(reservation.expiry_date)
+				) {
+					await ReservationsAPI.expire(reservation.id, {
+						librarianId: user?.id || '',
+						reason: `Đánh dấu hết hạn bởi thủ thư ${user?.username}`,
+					});
+					await PhysicalCopiesAPI.updateStatus(reservation.physical_copy_id, {
+						status: 'available',
+						notes: `Đặt trước đã hết hạn - Trả về trạng thái sẵn sàng`,
+					});
+					await NotificationsAPI.sendReminders({
+						readerId: reservation.reader_id,
+						customMessage: `Xin chào! Đặt trước sách "${reservation.book?.title}" của bạn đã hết hạn. Sách sẽ được trả về kho và có thể được đặt trước lại nếu cần thiết.`,
+					});
+					await queryClient.invalidateQueries({ queryKey: ['reservations'] });
+					await queryClient.invalidateQueries({
+						queryKey: ['physical-copies'],
+					});
+					await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+					await queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
+					await queryClient.invalidateQueries({
+						queryKey: ['borrow-records-by-status'],
+					});
+					await queryClient.invalidateQueries({
+						queryKey: ['reservation-stats'],
+					});
+					await queryClient.invalidateQueries({
+						queryKey: ['reservation-stats-by-status'],
+					});
+				}
+			}
+		};
+
+		updateExpiredReservations();
+	}, [reservations, user, queryClient]);
+
 	const handleCreateReservation = (data: unknown) => {
 		// Chặn tạo đặt trước khi còn đặt trước quá hạn
 		if (isBlockedByExpiredReservations) {
 			toast.error('Không thể tạo đặt trước mới!', {
-				description: 'Bạn phải hủy hết tất cả đặt trước quá hạn trước.',
+				description: (
+					<span className="text-red-500">
+						Bạn phải hủy hết tất cả đặt trước quá hạn trước.
+					</span>
+				),
 			});
 			return;
 		}
@@ -283,7 +315,11 @@ export default function ReservationsPage() {
 		// Chặn thực hiện đặt trước khi còn đặt trước quá hạn
 		if (isBlockedByExpiredReservations) {
 			toast.error('Không thể thực hiện đặt trước!', {
-				description: 'Bạn phải hủy hết tất cả đặt trước quá hạn trước.',
+				description: (
+					<span className="text-red-500">
+						Bạn phải hủy hết tất cả đặt trước quá hạn trước.
+					</span>
+				),
 			});
 			return;
 		}

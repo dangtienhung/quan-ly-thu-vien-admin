@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { FineStatistics } from '@/types';
 import {
 	AlertTriangle,
 	CheckCircle,
 	DollarSign,
 	TrendingUp,
 } from 'lucide-react';
+
+import type { FineStatistics } from '@/types';
 
 interface FineStatisticsCardsProps {
 	statistics: FineStatistics;
@@ -36,7 +37,7 @@ export function FineStatisticsCards({ statistics }: FineStatisticsCardsProps) {
 		},
 		{
 			title: 'Tổng tiền phạt',
-			value: `${statistics.totalAmount.toLocaleString()} VNĐ`,
+			value: `${statistics.totalAmount.toLocaleString('vi-VN')} VNĐ`,
 			icon: DollarSign,
 			color: 'text-emerald-600',
 			bgColor: 'bg-emerald-50',

@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, DollarSign, User } from 'lucide-react';
+import { Calendar, CreditCard } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,47 +6,50 @@ import type { FineWithBorrowDetails } from '@/types';
 
 export const columns = (onPayFine: (fine: FineWithBorrowDetails) => void) => [
 	{
-		key: 'reader',
-		header: 'Độc giả',
+		key: 'book',
+		header: 'Sách',
 		render: (fine: FineWithBorrowDetails) => (
-			<div className="flex items-center gap-2">
-				<User className="h-4 w-4 text-muted-foreground" />
-				<div>
-					<div className="font-medium">
-						{fine.borrow_record?.reader?.fullName || 'Không có thông tin'}
-					</div>
-					<div className="text-sm text-muted-foreground">
-						{fine.borrow_record?.reader?.card_number || 'Không có mã thẻ'}
+			<div className="gap-2 items-center w-full flex">
+				<img
+					src={fine.borrowRecord?.physicalCopy?.book?.cover_image}
+					alt={fine.borrowRecord?.physicalCopy?.book?.title}
+					className="w-10 h-14 object-cover rounded-md"
+				/>
+				<div className="gap-2">
+					{fine.borrowRecord?.physicalCopy?.book?.title || 'Không có tên sách'}
+					<div className="text-xs text-gray-500">
+						ISBN:{' '}
+						{fine.borrowRecord?.physicalCopy?.book?.isbn || 'Không có ISBN'}
 					</div>
 				</div>
 			</div>
 		),
 	},
 	{
-		key: 'book',
-		header: 'Sách',
-		render: (fine: FineWithBorrowDetails) => (
-			<div className="flex items-center gap-2">
-				<BookOpen className="h-4 w-4 text-muted-foreground" />
-				<div>
-					<div className="font-medium">
-						{fine.borrow_record?.copy?.book?.title || 'Không có tên sách'}
-					</div>
-					<div className="text-sm text-muted-foreground">
-						{fine.borrow_record?.copy?.book?.isbn || 'Không có ISBN'}
+		key: 'reader',
+		header: 'Độc giả',
+		render: (fine: FineWithBorrowDetails) => {
+			return (
+				<div className="flex items-center gap-2">
+					<div>
+						<div className="font-medium">
+							{fine.borrowRecord?.reader?.fullName || 'Không có thông tin'}
+						</div>
+						<div className="text-sm text-muted-foreground">
+							{fine.borrowRecord?.reader?.cardNumber || 'Không có mã thẻ'}
+						</div>
 					</div>
 				</div>
-			</div>
-		),
+			);
+		},
 	},
 	{
 		key: 'fine_amount',
 		header: 'Số tiền phạt',
 		render: (fine: FineWithBorrowDetails) => (
 			<div className="flex items-center gap-2">
-				<DollarSign className="h-4 w-4 text-muted-foreground" />
-				<span className="font-bold text-lg">
-					{fine.fine_amount.toLocaleString()} VNĐ
+				<span className="text-sm font-medium text-red-600">
+					{Number(fine.fine_amount).toLocaleString('vi-VN')} VNĐ
 				</span>
 			</div>
 		),
@@ -54,11 +57,23 @@ export const columns = (onPayFine: (fine: FineWithBorrowDetails) => void) => [
 	{
 		key: 'reason',
 		header: 'Lý do',
-		render: (fine: FineWithBorrowDetails) => (
-			<div className="max-w-xs">
-				<span className="text-sm">{fine.reason}</span>
-			</div>
-		),
+		render: (fine: FineWithBorrowDetails) => {
+			const getReasonText = (reason: string) => {
+				const reasonMap: Record<string, string> = {
+					overdue: 'Trả sách quá hạn',
+					damage: 'Làm hỏng sách',
+					lost: 'Làm mất sách',
+					administrative: 'Lý do khác',
+				};
+				return reasonMap[reason] || reason;
+			};
+
+			return (
+				<div className="max-w-xs">
+					<span className="text-sm">{getReasonText(fine.reason)}</span>
+				</div>
+			);
+		},
 	},
 	{
 		key: 'fine_date',
@@ -75,11 +90,43 @@ export const columns = (onPayFine: (fine: FineWithBorrowDetails) => void) => [
 	{
 		key: 'status',
 		header: 'Trạng thái',
-		render: (fine: FineWithBorrowDetails) => (
-			<Badge variant={fine.status === 'paid' ? 'default' : 'destructive'}>
-				{fine.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-			</Badge>
-		),
+		render: (fine: FineWithBorrowDetails) => {
+			const getStatusBadge = (status: string) => {
+				switch (status) {
+					case 'paid':
+						return (
+							<Badge
+								variant="default"
+								className="bg-green-100 text-green-800 hover:bg-green-100"
+							>
+								Đã thanh toán
+							</Badge>
+						);
+					case 'unpaid':
+						return (
+							<Badge
+								variant="destructive"
+								className="bg-red-100 text-red-800 hover:bg-red-100"
+							>
+								Chưa thanh toán
+							</Badge>
+						);
+					case 'waived':
+						return (
+							<Badge
+								variant="outline"
+								className="bg-gray-100 text-gray-800 hover:bg-gray-100"
+							>
+								Đã miễn
+							</Badge>
+						);
+					default:
+						return <Badge variant="outline">{status}</Badge>;
+				}
+			};
+
+			return getStatusBadge(fine.status);
+		},
 	},
 	{
 		key: 'payment_date',
@@ -103,11 +150,12 @@ export const columns = (onPayFine: (fine: FineWithBorrowDetails) => void) => [
 				{fine.status === 'unpaid' && (
 					<Button
 						size="sm"
+						variant="outline"
 						onClick={() => onPayFine(fine)}
-						className="bg-green-600 hover:bg-green-700"
+						className="text-green-600 hover:text-green-700 hover:bg-green-50"
+						title="Thanh toán phạt"
 					>
-						<DollarSign className="h-4 w-4 mr-1" />
-						Thanh toán
+						<CreditCard className="h-4 w-4" />
 					</Button>
 				)}
 			</div>

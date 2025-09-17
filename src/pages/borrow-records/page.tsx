@@ -1,16 +1,4 @@
 import {
-	BorrowRecordsTabs,
-	PageHeader,
-	RecordDetailsDialog,
-	SearchBar,
-} from './components';
-import type { CreateFineRequest, FineType } from '@/types/fines';
-import {
-	createSearchParams,
-	useNavigate,
-	useSearchParams,
-} from 'react-router-dom';
-import {
 	useApproveBorrowRecord,
 	useBorrowRecordsByStatus,
 	useBorrowRecordsStats,
@@ -21,21 +9,37 @@ import {
 	useReturnBook,
 	useSendReminders,
 } from '@/hooks/borrow-records';
+import type { CreateFineRequest, FineType } from '@/types/fines';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+	createSearchParams,
+	useNavigate,
+	useSearchParams,
+} from 'react-router-dom';
+import {
+	BorrowRecordsTabs,
+	ExportConfirmDialog,
+	PageHeader,
+	RecordDetailsDialog,
+	SearchBar,
+} from './components';
 
-import { ApproveRejectDialog } from './components/approve-reject-dialog';
 import { BorrowRecordsAPI } from '@/apis/borrow-records';
+import { ReservationsAPI } from '@/apis/reservations';
+import { Button } from '@/components/ui/button';
+import { useExportBorrowRecords } from '@/hooks/borrow-records/use-export-borrow-records';
+import { useCreateFine } from '@/hooks/fines/use-create-fine';
+import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
 import type { BorrowStatus } from '@/types/borrow-records';
+import { FileText } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { ApproveRejectDialog } from './components/approve-reject-dialog';
 import { CreateBorrowRecordDialog } from './components/create-borrow-record-dialog';
 import { DeleteConfirmDialog } from './components/delete-confirm-dialog';
 import { RenewBookDialog } from './components/renew-book-dialog';
-import { ReservationsAPI } from '@/apis/reservations';
 import { ReturnBookDialog } from './components/return-book-dialog';
 import { StatisticsCards } from './components/statistics-cards';
-import { toast } from 'sonner';
-import { useCreateFine } from '@/hooks/fines/use-create-fine';
-import { useState } from 'react';
-import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
 
 export default function BorrowRecordsPage() {
 	const navigate = useNavigate();
@@ -75,6 +79,7 @@ export default function BorrowRecordsPage() {
 	const [approvedBooks, setApprovedBooks] = useState<Record<string, boolean>>(
 		{}
 	);
+	const [showExportDialog, setShowExportDialog] = useState(false);
 
 	// Hooks for different data sources
 	const { stats } = useBorrowRecordsStats();
@@ -134,6 +139,9 @@ export default function BorrowRecordsPage() {
 
 	// Hook để tạo phiếu phạt
 	const { createFine, isCreating: isCreatingFine } = useCreateFine();
+
+	// Hook để export báo cáo
+	const { isExporting, exportBorrowRecordsPDF } = useExportBorrowRecords();
 
 	// New hooks for reservation and physical copy management
 	const updatePhysicalCopyStatusMutation = useUpdatePhysicalCopyStatus();
@@ -214,7 +222,7 @@ export default function BorrowRecordsPage() {
 		};
 
 		const daysOverdue = calculateDaysOverdue(record.due_date);
-		const dailyRate = 10000; // 10,000 VND mỗi ngày
+		const dailyRate = 500; // 500 VND mỗi ngày
 		const fineAmount = daysOverdue * dailyRate;
 
 		const fineData: CreateFineRequest = {
@@ -233,6 +241,60 @@ export default function BorrowRecordsPage() {
 				// Invalidate queries để refresh data
 				queryClient.invalidateQueries({ queryKey: ['fines'] });
 				invalidateAllQueries();
+			},
+		});
+	};
+
+	// Function to handle create fine and update overdue status
+	const handleCreateFineAndUpdateOverdue = (data: {
+		amount: number;
+		reason: string;
+		record: any;
+	}) => {
+		// Tính toán số ngày quá hạn
+		const calculateDaysOverdue = (dueDate: string) => {
+			const due = new Date(dueDate);
+			const today = new Date();
+			const diffTime = today.getTime() - due.getTime();
+			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+			return diffDays > 0 ? diffDays : 0;
+		};
+
+		const daysOverdue = calculateDaysOverdue(data.record.due_date);
+
+		const fineData: CreateFineRequest = {
+			borrow_id: data.record.id,
+			fine_amount: data.amount,
+			fine_date: new Date().toISOString(),
+			reason: 'overdue' as FineType,
+			description: data.reason || `Phạt trả sách muộn ${daysOverdue} ngày`,
+			overdue_days: daysOverdue,
+			daily_rate: Math.floor(data.amount / daysOverdue) || 500,
+			librarian_notes: `Tạo phiếu phạt cho sách "${data.record.physicalCopy?.book?.title}"`,
+		};
+
+		// Tạo phiếu phạt trước
+		createFine(fineData, {
+			onSuccess: () => {
+				// Sau khi tạo phiếu phạt thành công, cập nhật trạng thái quá hạn
+				updateOverdueMutation.mutate(data.record, {
+					onSuccess: () => {
+						// Invalidate queries để refresh data
+						queryClient.invalidateQueries({ queryKey: ['fines'] });
+						invalidateAllQueries();
+						toast.success(
+							'Tạo phiếu phạt và cập nhật trạng thái quá hạn thành công!'
+						);
+					},
+					onError: (error) => {
+						toast.error('Có lỗi khi cập nhật trạng thái quá hạn');
+						console.error('Error updating overdue status:', error);
+					},
+				});
+			},
+			onError: (error) => {
+				toast.error('Có lỗi khi tạo phiếu phạt');
+				console.error('Error creating fine:', error);
 			},
 		});
 	};
@@ -531,6 +593,40 @@ export default function BorrowRecordsPage() {
 		});
 	};
 
+	// Function to handle export PDF
+	const handleExportPDF = () => {
+		if (!records || records.length === 0) {
+			toast.error('Không có dữ liệu để xuất báo cáo');
+			return;
+		}
+		setShowExportDialog(true);
+	};
+
+	// Function to confirm export
+	const handleConfirmExport = async () => {
+		try {
+			await exportBorrowRecordsPDF(records, status);
+			toast.success('Xuất báo cáo PDF thành công!');
+			setShowExportDialog(false);
+		} catch (error) {
+			console.error('Error exporting PDF:', error);
+			toast.error('Có lỗi xảy ra khi xuất báo cáo PDF');
+		}
+	};
+
+	// Helper function to get status display name
+	const getStatusDisplayName = (status: string) => {
+		const statusMap: Record<string, string> = {
+			pending_approval: 'Chờ duyệt',
+			borrowed: 'Đang mượn',
+			returned: 'Đã trả',
+			overdue: 'Quá hạn',
+			renewed: 'Đã gia hạn',
+			cancelled: 'Đã hủy',
+		};
+		return statusMap[status] || status;
+	};
+
 	return (
 		<div className="space-y-6">
 			{/* Header */}
@@ -540,7 +636,20 @@ export default function BorrowRecordsPage() {
 			<StatisticsCards stats={stats || null} isLoading={false} />
 
 			{/* Search Bar */}
-			<SearchBar />
+			<div className="flex items-center justify-between gap-4">
+				<SearchBar />
+
+				{/* Export PDF Button */}
+				<Button
+					variant="outline"
+					onClick={handleExportPDF}
+					disabled={!records || records.length === 0}
+					className="flex items-center gap-2"
+				>
+					<FileText className="h-4 w-4" />
+					Tải báo cáo
+				</Button>
+			</div>
 
 			{/* Search Indicator */}
 			{searchQuery && (
@@ -584,6 +693,7 @@ export default function BorrowRecordsPage() {
 				onSendNotification={handleSendNotification}
 				onUpdateOverdue={handleUpdateOverdue}
 				onCreateFine={handleCreateFine}
+				onCreateFineAndUpdateOverdue={handleCreateFineAndUpdateOverdue}
 				isApproving={isApproving}
 				isReturning={isReturning}
 				isRenewing={isRenewing}
@@ -651,6 +761,16 @@ export default function BorrowRecordsPage() {
 					onClose={() => setSelectedRecord(null)}
 				/>
 			)}
+
+			{/* Export Confirm Dialog */}
+			<ExportConfirmDialog
+				open={showExportDialog}
+				onOpenChange={setShowExportDialog}
+				onConfirm={handleConfirmExport}
+				status={status}
+				isLoading={isExporting}
+				recordsCount={records?.length || 0}
+			/>
 		</div>
 	);
 }

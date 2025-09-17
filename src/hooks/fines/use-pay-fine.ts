@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface PayFineData {
 	amount: number;
 	paymentMethod: string;
-	transactionId?: string;
+	librarian_notes?: string;
 }
 
 interface UsePayFineOptions {
@@ -19,9 +19,12 @@ export const usePayFine = (options: UsePayFineOptions = {}) => {
 	const { onSuccess, onError } = options;
 
 	const mutation = useMutation({
-		mutationFn: ({ id, data }: { id: string; data: PayFineData }) =>
-			FinesAPI.payFine(id, data),
+		mutationFn: ({ id, data }: { id: string; data: PayFineData }) => {
+			console.log('Paying fine with data:', { id, data });
+			return FinesAPI.payFine(id, data);
+		},
 		onSuccess: (data) => {
+			console.log('Payment API response:', data);
 			toast.success('Thanh toán phạt thành công!');
 			queryClient.invalidateQueries({ queryKey: ['fines'] });
 			queryClient.invalidateQueries({ queryKey: ['fines-stats'] });
