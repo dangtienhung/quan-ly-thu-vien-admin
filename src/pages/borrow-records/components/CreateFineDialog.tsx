@@ -128,7 +128,7 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 										Quá hạn {daysOverdue} ngày
 									</span>
 								</div>
-								<div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
+								{/* <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
 									<p className="text-sm text-orange-800">
 										<strong>Số tiền phạt:</strong>{' '}
 										{amount.toLocaleString('vi-VN')} VND
@@ -136,7 +136,7 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 											({daysOverdue} ngày × 5000 VND/ngày)
 										</span>
 									</p>
-								</div>
+								</div> */}
 							</div>
 						</div>
 					</div>
@@ -154,10 +154,6 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 								min="0"
 								step="500"
 							/>
-							<p className="text-xs text-gray-500">
-								Số tiền đã được tính tự động: {daysOverdue} ngày × 500 VND ={' '}
-								{amount.toLocaleString('vi-VN')} VND
-							</p>
 						</div>
 
 						<div className="space-y-2">
@@ -189,13 +185,13 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 				</div>
 
 				<DialogFooter>
-					<Button
+					{/* <Button
 						variant="outline"
 						onClick={() => handleOpenChange(false)}
 						disabled={isLoading}
 					>
 						Hủy
-					</Button>
+					</Button> */}
 					<Button
 						onClick={handleSubmit}
 						disabled={isLoading || !reason.trim()}

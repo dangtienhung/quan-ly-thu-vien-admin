@@ -11,6 +11,7 @@ import {
 } from '@/hooks/borrow-records';
 import type { CreateFineRequest, FineType } from '@/types/fines';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	createSearchParams,
 	useNavigate,
@@ -25,14 +26,12 @@ import {
 } from './components';
 
 import { BorrowRecordsAPI } from '@/apis/borrow-records';
-import { ReservationsAPI } from '@/apis/reservations';
 import { Button } from '@/components/ui/button';
 import { useExportBorrowRecords } from '@/hooks/borrow-records/use-export-borrow-records';
 import { useCreateFine } from '@/hooks/fines/use-create-fine';
 import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
 import type { BorrowStatus } from '@/types/borrow-records';
 import { FileText } from 'lucide-react';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import { ApproveRejectDialog } from './components/approve-reject-dialog';
 import { CreateBorrowRecordDialog } from './components/create-borrow-record-dialog';
@@ -73,9 +72,6 @@ export default function BorrowRecordsPage() {
 	const [approveRejectAction, setApproveRejectAction] = useState<
 		'approve' | 'reject'
 	>('approve');
-	const [pendingReservationsByBook, setPendingReservationsByBook] = useState<
-		Record<string, boolean>
-	>({});
 	const [approvedBooks, setApprovedBooks] = useState<Record<string, boolean>>(
 		{}
 	);
@@ -86,29 +82,23 @@ export default function BorrowRecordsPage() {
 	const { stats } = useBorrowRecordsStats();
 
 	// Hook cho filter theo status
-	const {
-		borrowRecords: statusRecords,
-		meta: statusMeta,
-		isLoading: isLoadingStatus,
-	} = useBorrowRecordsByStatus({
-		params: borrowRecordStatus,
-		enabled: true, // Luôn enable để phản ứng với thay đổi params
-	});
+	const { borrowRecords: statusRecords, isLoading: isLoadingStatus } =
+		useBorrowRecordsByStatus({
+			params: borrowRecordStatus,
+			enabled: true, // Luôn enable để phản ứng với thay đổi params
+		});
 
 	// Hook để lấy dữ liệu "renewed" khi đang ở tab "borrowed"
-	const {
-		borrowRecords: renewedRecords,
-		meta: renewedMeta,
-		isLoading: isLoadingRenewed,
-	} = useBorrowRecordsByStatus({
-		params: {
-			status: 'renewed' as BorrowStatus,
-			page: Number(page),
-			limit: Number(limit),
-			q: searchQuery,
-		},
-		enabled: status === 'borrowed', // Chỉ fetch khi đang ở tab "borrowed"
-	});
+	const { borrowRecords: renewedRecords, isLoading: isLoadingRenewed } =
+		useBorrowRecordsByStatus({
+			params: {
+				status: 'renewed' as BorrowStatus,
+				page: Number(page),
+				limit: Number(limit),
+				q: searchQuery,
+			},
+			enabled: status === 'borrowed', // Chỉ fetch khi đang ở tab "borrowed"
+		});
 
 	// Mutation hooks
 	const { createBorrowRecord, isCreating } = useCreateBorrowRecord();
@@ -128,7 +118,7 @@ export default function BorrowRecordsPage() {
 				)}`,
 			});
 		},
-		onSuccess: (updatedRecord) => {
+		onSuccess: () => {
 			toast.success('Đã cập nhật trạng thái thành quá hạn!');
 			invalidateAllQueries();
 		},
@@ -149,42 +139,57 @@ export default function BorrowRecordsPage() {
 	const { mutate: sendReminders, isPending: isSendingReminders } =
 		useSendReminders();
 
-	// Helper function to get current data based on active tab and filters
-	const getCurrentData = () => {
-		// Nếu đang ở tab "borrowed", kết hợp dữ liệu "borrowed" và "renewed"
+	// Helper function to get current data based on active tab and filters (memoized)
+	const { records, isLoading } = useMemo(() => {
 		if (status === 'borrowed') {
 			const combinedRecords = [
 				...(statusRecords || []),
 				...(renewedRecords || []),
 			];
-			const combinedMeta = {
-				...statusMeta,
-				totalItems:
-					(statusMeta?.totalItems || 0) + (renewedMeta?.totalItems || 0),
-				totalPages: Math.ceil(
-					((statusMeta?.totalItems || 0) + (renewedMeta?.totalItems || 0)) /
-						(Number(limit) || 20)
-				),
-			};
 			return {
 				records: combinedRecords,
-				meta: combinedMeta,
 				isLoading: isLoadingStatus || isLoadingRenewed,
 			};
 		}
-
-		// Sử dụng statusRecords cho các tab khác
 		return {
 			records: statusRecords,
-			meta: statusMeta,
 			isLoading: isLoadingStatus,
 		};
-	};
+	}, [
+		status,
+		statusRecords,
+		renewedRecords,
+		isLoadingStatus,
+		isLoadingRenewed,
+	]);
 
-	const { records, isLoading } = getCurrentData();
+	// Auto-update overdue status based on due_date without showing fine dialog
+	const updatedOverdueRef = useRef<Set<string>>(new Set());
+	useEffect(() => {
+		if (!records || records.length === 0) return;
+		const now = new Date().getTime();
+		records.forEach((r: any) => {
+			const id = r?.id;
+			if (!id) return;
+			// Skip if already overdue/returned/cancelled or already updated in this session
+			if (
+				r?.status === 'overdue' ||
+				r?.status === 'returned' ||
+				r?.status === 'cancelled' ||
+				updatedOverdueRef.current.has(id)
+			) {
+				return;
+			}
+			const due = r?.due_date ? new Date(r.due_date).getTime() : NaN;
+			if (!Number.isNaN(due) && due < now) {
+				updatedOverdueRef.current.add(id);
+				updateOverdueMutation.mutate(r);
+			}
+		});
+	}, [records, updateOverdueMutation]);
 
-	// Helper function to invalidate all relevant queries
-	const invalidateAllQueries = () => {
+	// Helper function to invalidate all relevant queries (stable)
+	const invalidateAllQueries = useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: ['borrow-records'] });
 		queryClient.invalidateQueries({ queryKey: ['borrow-records-stats'] });
 		queryClient.invalidateQueries({
@@ -204,24 +209,24 @@ export default function BorrowRecordsPage() {
 				],
 			});
 		}
-	};
+	}, [queryClient, borrowRecordStatus, status, page, limit, searchQuery]);
 
 	// Function to handle update overdue status
 	const handleUpdateOverdue = (record: any) => {
 		updateOverdueMutation.mutate(record);
 	};
 
+	// Utility: calculate overdue days (stable)
+	const calculateDaysOverdue = useCallback((dueDate: string) => {
+		const due = new Date(dueDate);
+		const today = new Date();
+		const diffTime = today.getTime() - due.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		return diffDays > 0 ? diffDays : 0;
+	}, []);
+
 	// Function to handle create fine
 	const handleCreateFine = (record: any) => {
-		// Tính toán số ngày quá hạn
-		const calculateDaysOverdue = (dueDate: string) => {
-			const due = new Date(dueDate);
-			const today = new Date();
-			const diffTime = today.getTime() - due.getTime();
-			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-			return diffDays > 0 ? diffDays : 0;
-		};
-
 		const daysOverdue = calculateDaysOverdue(record.due_date);
 		const dailyRate = 500; // 500 VND mỗi ngày
 		const fineAmount = daysOverdue * dailyRate;
@@ -252,15 +257,6 @@ export default function BorrowRecordsPage() {
 		reason: string;
 		record: any;
 	}) => {
-		// Tính toán số ngày quá hạn
-		const calculateDaysOverdue = (dueDate: string) => {
-			const due = new Date(dueDate);
-			const today = new Date();
-			const diffTime = today.getTime() - due.getTime();
-			const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-			return diffDays > 0 ? diffDays : 0;
-		};
-
 		const daysOverdue = calculateDaysOverdue(data.record.due_date);
 
 		const fineData: CreateFineRequest = {
@@ -277,21 +273,42 @@ export default function BorrowRecordsPage() {
 		// Tạo phiếu phạt trước
 		createFine(fineData, {
 			onSuccess: () => {
-				// Sau khi tạo phiếu phạt thành công, cập nhật trạng thái quá hạn
-				updateOverdueMutation.mutate(data.record, {
-					onSuccess: () => {
-						// Invalidate queries để refresh data
-						queryClient.invalidateQueries({ queryKey: ['fines'] });
-						invalidateAllQueries();
-						toast.success(
-							'Tạo phiếu phạt và cập nhật trạng thái quá hạn thành công!'
-						);
+				// Sau khi tạo phiếu phạt thành công, cập nhật trạng thái thành "đã trả"
+				returnBook(
+					{
+						id: data.record.id,
+						data: {
+							returnNotes: `Trả sách sau khi tạo phiếu phạt - ${data.reason}`,
+						},
 					},
-					onError: (error) => {
-						toast.error('Có lỗi khi cập nhật trạng thái quá hạn');
-						console.error('Error updating overdue status:', error);
-					},
-				});
+					{
+						onSuccess: async () => {
+							// Cập nhật trạng thái sách về "available"
+							const physicalCopyId = data.record.physicalCopy?.id;
+							if (physicalCopyId) {
+								try {
+									await updatePhysicalCopyStatusMutation.mutateAsync({
+										id: physicalCopyId,
+										data: {
+											status: 'available',
+											notes: 'Sách đã được trả và sẵn sàng cho mượn',
+										},
+									});
+								} catch (error) {
+									console.error('Error updating physical copy status:', error);
+								}
+							}
+							// Invalidate queries để refresh data
+							queryClient.invalidateQueries({ queryKey: ['fines'] });
+							invalidateAllQueries();
+							toast.success('Tạo phiếu phạt và trả sách thành công!');
+						},
+						onError: (error) => {
+							toast.error('Có lỗi khi cập nhật trạng thái trả sách');
+							console.error('Error updating return status:', error);
+						},
+					}
+				);
 			},
 			onError: (error) => {
 				toast.error('Có lỗi khi tạo phiếu phạt');
@@ -393,10 +410,8 @@ export default function BorrowRecordsPage() {
 		}
 	};
 
-	const handleDeleteRecord = (record: any) => {
-		setRecordToDelete(record);
-		setShowDeleteDialog(true);
-	};
+	// keep for potential future UI triggers (unused locally)
+	const handleDeleteRecord = (_record: unknown) => {};
 
 	const confirmDelete = () => {
 		if (recordToDelete) {
@@ -416,19 +431,15 @@ export default function BorrowRecordsPage() {
 		setShowApproveRejectDialog(true);
 	};
 
-	const handleRejectRecord = (record: any) => {
-		setRecordToApproveReject(record);
-		setApproveRejectAction('reject');
-		setShowApproveRejectDialog(true);
-	};
+	// keep for potential future UI triggers (unused locally)
+	const handleRejectRecord = (_record: unknown) => {};
 
 	const handleApproveRejectSubmit = async (data: any) => {
 		if (approveRejectAction === 'approve') {
 			try {
-				// First, get pending reservations for this book
 				const bookId = recordToApproveReject.physicalCopy?.book?.id;
 
-				// Finally, approve the borrow record
+				// Approve the borrow record
 				approveBorrowRecord(
 					{
 						id: recordToApproveReject.id,
@@ -437,32 +448,7 @@ export default function BorrowRecordsPage() {
 					{
 						onSuccess: async () => {
 							if (bookId) {
-								// Get pending reservations for this book
-								const pendingReservationsResponse =
-									await ReservationsAPI.getByBook({
-										bookId,
-										page: 1,
-										limit: 100,
-									});
-
-								const pendingReservations =
-									pendingReservationsResponse.data.filter(
-										(reservation) => reservation.status === 'pending'
-									);
-
-								// Check if there are other pending borrow records for the same book
-								const otherPendingBorrowRecords = records.filter(
-									(record) =>
-										record.status === 'pending_approval' &&
-										record.id !== recordToApproveReject.id &&
-										record.physicalCopy?.book?.id === bookId
-								);
-
-								// Mark this book as approved to disable approve buttons for other records
-								setApprovedBooks((prev) => ({
-									...prev,
-									[bookId]: true,
-								}));
+								setApprovedBooks((prev) => ({ ...prev, [bookId]: true }));
 							}
 							setShowApproveRejectDialog(false);
 							setRecordToApproveReject(null);
@@ -576,13 +562,10 @@ export default function BorrowRecordsPage() {
 		const bookId = record.physicalCopy?.book?.id;
 		if (!bookId) return false;
 
-		// Disable if there are pending reservations OR if this book has been approved by someone else
+		// Disable if this book has been approved by someone else
 		// But don't disable for the current record being processed
 		const isCurrentRecord = record.id === recordToApproveReject?.id;
-		return (
-			(pendingReservationsByBook[bookId] || approvedBooks[bookId]) &&
-			!isCurrentRecord
-		);
+		return approvedBooks[bookId] && !isCurrentRecord;
 	};
 
 	const handleSelectedTab = (value: string) => {
@@ -722,17 +705,8 @@ export default function BorrowRecordsPage() {
 	};
 
 	// Helper function to get status display name
-	const getStatusDisplayName = (status: string) => {
-		const statusMap: Record<string, string> = {
-			pending_approval: 'Chờ duyệt',
-			borrowed: 'Đang mượn',
-			returned: 'Đã trả',
-			overdue: 'Quá hạn',
-			renewed: 'Đã gia hạn',
-			cancelled: 'Đã hủy',
-		};
-		return statusMap[status] || status;
-	};
+	// reserved helper (not used in this component)
+	const getStatusDisplayName = (_status: string) => _status;
 
 	return (
 		<div className="space-y-6">
@@ -807,7 +781,7 @@ export default function BorrowRecordsPage() {
 				status={status}
 				onTabChange={handleSelectedTab}
 				records={records}
-				isLoading={isLoadingStatus}
+				isLoading={isLoading}
 				selectedIds={selectedIds}
 				onToggleRow={handleToggleRow}
 				onToggleAll={handleToggleAll}

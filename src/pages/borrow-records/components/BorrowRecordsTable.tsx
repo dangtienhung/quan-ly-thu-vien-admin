@@ -108,28 +108,6 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 			if (shouldReset) {
 				processedRecordsRef.current.clear();
 			}
-
-			const overdueRecords = records.filter((record) => {
-				// Chỉ xử lý các record có status 'borrowed' hoặc 'renewed' và bị quá hạn
-				// Và chưa được xử lý trước đó
-				return (
-					(record.status === 'borrowed' || record.status === 'renewed') &&
-					record.due_date &&
-					new Date(record.due_date) < new Date() &&
-					!processedRecordsRef.current.has(record.id)
-				);
-			});
-
-			// Tự động mở dialog tạo phiếu phạt cho record quá hạn đầu tiên
-			if (overdueRecords.length > 0 && !createFineDialogOpen) {
-				const firstOverdueRecord = overdueRecords[0];
-				console.log(
-					`Tự động mở dialog tạo phiếu phạt cho record quá hạn: ${firstOverdueRecord.id}`
-				);
-				processedRecordsRef.current.add(firstOverdueRecord.id);
-				setSelectedFineRecord(firstOverdueRecord);
-				setCreateFineDialogOpen(true);
-			}
 		}
 	}, [
 		records,
@@ -465,12 +443,16 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 						{/* Actions for overdue books */}
 						{record.status === 'overdue' && (
 							<>
+								{/* Ở tab overdue: Trả sách sẽ mở dialog tạo phiếu phạt */}
 								<Button
 									variant="ghost"
 									size="sm"
-									onClick={() => onReturn(record)}
-									title="Trả sách"
-									disabled={isReturning}
+									onClick={() => {
+										setSelectedFineRecord(record);
+										setCreateFineDialogOpen(true);
+									}}
+									title="Trả sách (tạo phiếu phạt)"
+									disabled={isReturning || isCreatingFine}
 								>
 									<CheckCircle className="w-4 h-4 text-green-600" />
 								</Button>
@@ -497,7 +479,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									</Button>
 								)} */}
 								{/* Notification button for overdue books */}
-								{/* <Button
+								<Button
 									variant="ghost"
 									size="sm"
 									onClick={() => onSendNotification(record)}
@@ -506,7 +488,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									disabled={isSendingReminders}
 								>
 									<Bell className="w-4 h-4" />
-								</Button> */}
+								</Button>
 							</>
 						)}
 
