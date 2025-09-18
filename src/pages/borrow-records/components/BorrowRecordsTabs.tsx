@@ -7,6 +7,9 @@ interface BorrowRecordsTabsProps {
 	onTabChange: (value: string) => void;
 	records: any[];
 	isLoading: boolean;
+	selectedIds: string[];
+	onToggleRow: (id: string, checked: boolean) => void;
+	onToggleAll: (checked: boolean) => void;
 	onApprove: (record: any) => void;
 	onReturn: (record: any) => void;
 	onRenew: (record: any) => void;
@@ -33,6 +36,9 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 	onTabChange,
 	records,
 	isLoading,
+	selectedIds,
+	onToggleRow,
+	onToggleAll,
 	onApprove,
 	onReturn,
 	onRenew,
@@ -62,6 +68,9 @@ export const BorrowRecordsTabs: React.FC<BorrowRecordsTabsProps> = ({
 				<BorrowRecordsTable
 					records={records}
 					isLoading={isLoading}
+					selectedIds={selectedIds}
+					onToggleRow={onToggleRow}
+					onToggleAll={onToggleAll}
 					onApprove={onApprove}
 					onReturn={onReturn}
 					onRenew={onRenew}

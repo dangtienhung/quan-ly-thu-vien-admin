@@ -80,6 +80,7 @@ export default function BorrowRecordsPage() {
 		{}
 	);
 	const [showExportDialog, setShowExportDialog] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
 	// Hooks for different data sources
 	const { stats } = useBorrowRecordsStats();
@@ -614,6 +615,112 @@ export default function BorrowRecordsPage() {
 		}
 	};
 
+	// Selection handlers
+	const handleToggleRow = (id: string, checked: boolean) => {
+		setSelectedIds((prev) => {
+			const set = new Set(prev);
+			if (checked) set.add(id);
+			else set.delete(id);
+			return Array.from(set);
+		});
+	};
+
+	const handleToggleAll = (checked: boolean) => {
+		if (checked) {
+			setSelectedIds((records || []).map((r) => r.id));
+		} else {
+			setSelectedIds([]);
+		}
+	};
+
+	// Export selected borrow slips as PDF (each slip new page)
+	const handleExportSelectedSlips = async () => {
+		const selectedRecords = (records || []).filter((r) =>
+			selectedIds.includes(r.id)
+		);
+		if (selectedRecords.length === 0) {
+			toast.error('Vui lòng chọn ít nhất một bản ghi để in phiếu mượn');
+			return;
+		}
+
+		const buildSlipHTML = (r: any, idx: number) => `
+			<div class="borrow-slip">
+				<div class="header">
+					<img src="/logo.jpg" alt="Logo trường" class="logo" />
+					<div class="school">Trường THPT Hoài Đức A</div>
+					<div class="title">PHIẾU MƯỢN SÁCH</div>
+					<div class="meta">Mã phiếu: ${r.id}</div>
+				</div>
+				<table class="table">
+					<tr><th>Độc giả</th><td>${r.reader?.fullName || ''} (${
+			r.reader?.cardNumber || ''
+		})</td></tr>
+					<tr><th>Điện thoại</th><td>${r.reader?.phone || ''}</td></tr>
+					<tr><th>Địa chỉ</th><td>${r.reader?.address || ''}</td></tr>
+					<tr><th>Tên sách</th><td>${r.physicalCopy?.book?.title || ''}</td></tr>
+					<tr><th>ISBN</th><td>${r.physicalCopy?.book?.isbn || ''}</td></tr>
+					<tr><th>Mã vạch</th><td>${r.physicalCopy?.barcode || ''}</td></tr>
+					<tr><th>Ngày mượn</th><td>${new Date(r.borrow_date).toLocaleDateString(
+						'vi-VN'
+					)}</td></tr>
+					<tr><th>Hạn trả</th><td>${new Date(r.due_date).toLocaleDateString(
+						'vi-VN'
+					)}</td></tr>
+					<tr><th>Thủ thư</th><td>${r.librarian?.username || ''}</td></tr>
+					<tr><th>Ghi chú</th><td>${r.borrow_notes || ''}</td></tr>
+				</table>
+				<div class="footer">Ngày in: ${new Date().toLocaleDateString('vi-VN')}</div>
+			</div>
+			${idx < selectedRecords.length - 1 ? '<div class="page-break"></div>' : ''}
+		`;
+
+		const html = `
+			<!DOCTYPE html>
+			<html lang="vi">
+			<head>
+				<meta charset="UTF-8">
+				<title>Phiếu mượn sách</title>
+				<style>
+					body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+					.header { text-align: center; margin-bottom: 16px; }
+					.logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; }
+					.school { font-weight: 700; color: #16ae5b; }
+					.title { font-size: 20px; font-weight: bold; margin-top: 4px; }
+					.meta { font-size: 12px; color: #6b7280; }
+					.table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+					.table th, .table td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+					.table th { background: #f8fafc; width: 180px; }
+					.footer { margin-top: 8px; text-align: right; font-size: 12px; color: #6b7280; }
+					.page-break { page-break-after: always; }
+					.borrow-slip { page-break-inside: avoid; }
+				</style>
+			</head>
+			<body>
+				${selectedRecords.map((r, idx) => buildSlipHTML(r, idx)).join('')}
+			</body>
+			</html>
+		`;
+
+		const w = window.open(
+			'',
+			'_blank',
+			'width=800,height=600,scrollbars=yes,resizable=yes'
+		);
+		if (!w) {
+			toast.error(
+				'Không thể mở cửa sổ in. Vui lòng cho phép popup và thử lại.'
+			);
+			return;
+		}
+		w.document.write(html);
+		w.document.close();
+		setTimeout(() => {
+			w.focus();
+			w.print();
+			w.onafterprint = () => w.close();
+		}, 300);
+	};
+
 	// Helper function to get status display name
 	const getStatusDisplayName = (status: string) => {
 		const statusMap: Record<string, string> = {
@@ -639,21 +746,35 @@ export default function BorrowRecordsPage() {
 			<div className="flex items-center justify-between gap-4">
 				<SearchBar />
 
-				{/* Export PDF Button */}
-				<Button
-					variant="outline"
-					onClick={handleExportPDF}
-					disabled={!records || records.length === 0}
-					className="flex items-center gap-2"
-				>
-					<FileText className="h-4 w-4" />
-					Tải báo cáo
-				</Button>
+				<div className="flex items-center gap-2">
+					{/* Export PDF Button */}
+					<Button
+						variant="outline"
+						onClick={handleExportPDF}
+						disabled={!records || records.length === 0}
+						className="flex items-center gap-2"
+					>
+						<FileText className="w-4 h-4" />
+						Tải báo cáo
+					</Button>
+
+					{/* Print borrow slips for selected */}
+					{selectedIds.length > 0 && (
+						<Button
+							onClick={handleExportSelectedSlips}
+							className="flex items-center gap-2"
+							title={`In phiếu mượn cho ${selectedIds.length} bản ghi đã chọn`}
+						>
+							<FileText className="w-4 h-4" />
+							In phiếu mượn ({selectedIds.length})
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{/* Search Indicator */}
 			{searchQuery && (
-				<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+				<div className="p-3 border border-blue-200 rounded-lg bg-blue-50">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center space-x-2">
 							<span className="text-sm text-blue-700">
@@ -673,7 +794,7 @@ export default function BorrowRecordsPage() {
 									search: currentParams.toString(),
 								});
 							}}
-							className="text-blue-600 hover:text-blue-800 text-sm underline"
+							className="text-sm text-blue-600 underline hover:text-blue-800"
 						>
 							Xóa tìm kiếm
 						</button>
@@ -687,6 +808,9 @@ export default function BorrowRecordsPage() {
 				onTabChange={handleSelectedTab}
 				records={records}
 				isLoading={isLoadingStatus}
+				selectedIds={selectedIds}
+				onToggleRow={handleToggleRow}
+				onToggleAll={handleToggleAll}
 				onApprove={handleApproveRecord}
 				onReturn={openReturnDialog}
 				onRenew={openRenewDialog}

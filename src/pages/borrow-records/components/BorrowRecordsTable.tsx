@@ -28,6 +28,9 @@ import { CreateFineDialog } from './CreateFineDialog';
 interface BorrowRecordsTableProps {
 	records: any[];
 	isLoading: boolean;
+	selectedIds: string[];
+	onToggleRow: (id: string, checked: boolean) => void;
+	onToggleAll: (checked: boolean) => void;
 	onApprove: (record: any) => void;
 	onReturn: (record: any) => void;
 	onRenew: (record: any) => void;
@@ -53,6 +56,9 @@ interface BorrowRecordsTableProps {
 export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	records,
 	isLoading,
+	selectedIds,
+	onToggleRow,
+	onToggleAll,
 	onApprove,
 	onReturn,
 	onRenew,
@@ -148,17 +154,17 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	const getStatusIcon = (status: BorrowStatus) => {
 		switch (status) {
 			case 'pending_approval':
-				return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+				return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
 			case 'borrowed':
-				return <BookOpen className="h-4 w-4 text-green-600" />;
+				return <BookOpen className="w-4 h-4 text-green-600" />;
 			case 'returned':
-				return <CheckCircle className="h-4 w-4 text-green-600" />;
+				return <CheckCircle className="w-4 h-4 text-green-600" />;
 			case 'overdue':
-				return <AlertTriangle className="h-4 w-4 text-red-600" />;
+				return <AlertTriangle className="w-4 h-4 text-red-600" />;
 			case 'renewed':
-				return <Calendar className="h-4 w-4 text-purple-600" />;
+				return <Calendar className="w-4 h-4 text-purple-600" />;
 			case 'cancelled':
-				return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+				return <AlertTriangle className="w-4 h-4 text-gray-600" />;
 			default:
 				return null;
 		}
@@ -240,15 +246,24 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	const renderBorrowRecordRow = (record: any) => {
 		const isRecordOverdue = isOverdue(record);
 		const disableOtherActions = shouldDisableOtherActions(record);
+		const checked = selectedIds.includes(record.id);
 
 		return (
 			<TableRow key={record.id}>
+				<TableCell className="w-10">
+					<input
+						type="checkbox"
+						aria-label="Chọn bản ghi"
+						checked={checked}
+						onChange={(e) => onToggleRow(record.id, e.target.checked)}
+					/>
+				</TableCell>
 				<TableCell className="font-medium">
-					<div className="gap-2 items-center w-full flex">
+					<div className="flex items-center w-full gap-2">
 						<img
 							src={record.physicalCopy?.book?.cover_image}
 							alt={record.physicalCopy?.book?.title}
-							className="w-10 h-14 object-cover rounded-md"
+							className="object-cover w-10 rounded-md h-14"
 						/>
 						<div className="gap-2">
 							{record.physicalCopy?.book?.title || 'Không có tên sách'}
@@ -288,7 +303,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 				</TableCell>
 				<TableCell>
 					{record.status === 'overdue' && (
-						<span className="text-red-600 font-medium">
+						<span className="font-medium text-red-600">
 							{calculateDaysOverdue(record.due_date)} ngày quá hạn
 						</span>
 					)}
@@ -333,7 +348,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 							onClick={() => handleViewDetails(record)}
 							title="Xem chi tiết"
 						>
-							<Eye className="h-4 w-4" />
+							<Eye className="w-4 h-4" />
 						</Button>
 
 						{/* Actions for pending approval */}
@@ -377,7 +392,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-red-600 hover:text-red-700"
 										disabled={isUpdatingOverdue}
 									>
-										<Clock className="h-4 w-4" />
+										<Clock className="w-4 h-4" />
 									</Button>
 								)}
 
@@ -388,7 +403,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									title="Trả sách"
 									disabled={isReturning || disableOtherActions}
 								>
-									<CheckCircle className="h-4 w-4 text-green-600" />
+									<CheckCircle className="w-4 h-4 text-green-600" />
 								</Button>
 
 								{/* Button gia hạn - chỉ hiển thị khi không ở tab overview */}
@@ -400,7 +415,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										title="Gia hạn"
 										disabled={isRenewing || disableOtherActions}
 									>
-										<Calendar className="h-4 w-4 text-blue-600" />
+										<Calendar className="w-4 h-4 text-blue-600" />
 									</Button>
 								)}
 
@@ -414,7 +429,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-orange-600 hover:text-orange-700"
 										disabled={isCreatingFine}
 									>
-										<Receipt className="h-4 w-4" />
+										<Receipt className="w-4 h-4" />
 									</Button>
 								)}
 
@@ -428,7 +443,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-orange-600 hover:text-orange-700"
 										disabled={isSendingReminders}
 									>
-										<Bell className="h-4 w-4" />
+										<Bell className="w-4 h-4" />
 									</Button>
 								)}
 								{/* Notification button for overdue books */}
@@ -441,7 +456,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-red-600 hover:text-red-700"
 										disabled={isSendingReminders}
 									>
-										<Bell className="h-4 w-4" />
+										<Bell className="w-4 h-4" />
 									</Button>
 								)}
 							</>
@@ -457,7 +472,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									title="Trả sách"
 									disabled={isReturning}
 								>
-									<CheckCircle className="h-4 w-4 text-green-600" />
+									<CheckCircle className="w-4 h-4 text-green-600" />
 								</Button>
 								{/* <Button
 									variant="ghost"
@@ -466,7 +481,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									title="Gia hạn"
 									disabled={isRenewing}
 								>
-									<Calendar className="h-4 w-4 text-blue-600" />
+									<Calendar className="w-4 h-4 text-blue-600" />
 								</Button> */}
 								{/* Button tạo phiếu phạt - chỉ hiển thị ở tab overdue */}
 								{/* {currentStatus === 'overdue' && (
@@ -478,7 +493,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-orange-600 hover:text-orange-700"
 										disabled={isCreatingFine}
 									>
-										<Receipt className="h-4 w-4" />
+										<Receipt className="w-4 h-4" />
 									</Button>
 								)} */}
 								{/* Notification button for overdue books */}
@@ -490,7 +505,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									className="text-red-600 hover:text-red-700"
 									disabled={isSendingReminders}
 								>
-									<Bell className="h-4 w-4" />
+									<Bell className="w-4 h-4" />
 								</Button> */}
 							</>
 						)}
@@ -508,7 +523,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 										className="text-red-600 hover:text-red-700"
 										disabled={isUpdatingOverdue}
 									>
-										<Clock className="h-4 w-4" />
+										<Clock className="w-4 h-4" />
 									</Button>
 								)}
 								<Button
@@ -518,7 +533,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 									title="Trả sách"
 									disabled={isReturning}
 								>
-									<CheckCircle className="h-4 w-4 text-green-600" />
+									<CheckCircle className="w-4 h-4 text-green-600" />
 								</Button>
 							</>
 						)}
@@ -529,12 +544,12 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 	};
 
 	if (isLoading) {
-		return <div className="text-center py-8">Đang tải...</div>;
+		return <div className="py-8 text-center">Đang tải...</div>;
 	}
 
 	if (records.length === 0) {
 		return (
-			<div className="text-center py-8 text-muted-foreground">
+			<div className="py-8 text-center text-muted-foreground">
 				Không có giao dịch mượn sách nào
 			</div>
 		);
@@ -546,6 +561,16 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 				<Table>
 					<TableHeader>
 						<TableRow>
+							<TableHead className="w-10">
+								<input
+									type="checkbox"
+									aria-label="Chọn tất cả"
+									checked={
+										records.length > 0 && selectedIds.length === records.length
+									}
+									onChange={(e) => onToggleAll(e.target.checked)}
+								/>
+							</TableHead>
 							<TableHead>Sách</TableHead>
 							<TableHead>Độc giả</TableHead>
 							<TableHead>Ngày mượn</TableHead>
