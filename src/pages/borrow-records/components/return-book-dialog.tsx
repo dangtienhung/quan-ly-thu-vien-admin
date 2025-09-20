@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import {
 	Dialog,
 	DialogContent,
@@ -6,10 +5,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { ReturnBookRequest } from '@/types';
-import React, { useState } from 'react';
 
 interface ReturnBookDialogProps {
 	open: boolean;
@@ -96,6 +97,10 @@ export function ReturnBookDialog({
 							disabled={isLoading}
 						>
 							Hủy
+						</Button>
+
+						<Button type="button" variant="destructive" disabled={isLoading}>
+							Tạo phiếu phạt
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading ? 'Đang xử lý...' : 'Xác nhận Trả sách'}
