@@ -1,3 +1,4 @@
+import { AlertTriangle, Receipt } from 'lucide-react';
 import {
 	Dialog,
 	DialogContent,
@@ -6,14 +7,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle, Receipt } from 'lucide-react';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select';
 import { useEffect, useState } from 'react';
 
+import type { BorrowRecord } from '@/types/borrow-records';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { BorrowRecord } from '@/types/borrow-records';
 
 interface CreateFineDialogProps {
 	open: boolean;
@@ -23,8 +30,10 @@ interface CreateFineDialogProps {
 		amount: number;
 		reason: string;
 		record: BorrowRecord;
+		copyStatus?: string;
 	}) => void;
 	isLoading: boolean;
+	currentStatus?: string; // Thêm prop để biết đang ở tab nào
 }
 
 export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
@@ -33,6 +42,7 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 	record,
 	onConfirm,
 	isLoading,
+	currentStatus,
 }) => {
 	const calculateDaysOverdue = (dueDate: string) => {
 		const due = new Date(dueDate);
@@ -55,6 +65,17 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 
 	const [amount, setAmount] = useState<number>(0);
 	const [reason, setReason] = useState<string>('');
+	const [copyStatus, setCopyStatus] = useState<string>('');
+
+	// Copy status options
+	const copyStatusOptions = [
+		{ value: 'available', label: 'Có sẵn' },
+		{ value: 'borrowed', label: 'Đang mượn' },
+		{ value: 'reserved', label: 'Đã đặt trước' },
+		{ value: 'damaged', label: 'Bị hư hỏng' },
+		{ value: 'lost', label: 'Bị mất' },
+		{ value: 'maintenance', label: 'Bảo trì' },
+	];
 
 	// Reset form khi dialog mở/đóng
 	const handleOpenChange = (newOpen: boolean) => {
@@ -62,18 +83,26 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 		if (!newOpen) {
 			setAmount(0);
 			setReason('');
+			setCopyStatus('');
 		}
 	};
 
 	// Cập nhật form khi record thay đổi
 	useEffect(() => {
 		if (record) {
-			const calculatedAmount = calculateFineAmount(record.due_date);
-			const defaultReason = getDefaultReason(record);
-			setAmount(calculatedAmount);
-			setReason(defaultReason);
+			if (currentStatus === 'returned') {
+				// Ở tab "đã trả": amount = 0, reason = rỗng
+				setAmount(0);
+				setReason('');
+			} else {
+				// Ở các tab khác: tính toán như cũ
+				const calculatedAmount = calculateFineAmount(record.due_date);
+				const defaultReason = getDefaultReason(record);
+				setAmount(calculatedAmount);
+				setReason(defaultReason);
+			}
 		}
-	}, [record]);
+	}, [record, currentStatus]);
 
 	const handleSubmit = () => {
 		if (!record) return;
@@ -82,6 +111,7 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 			amount,
 			reason,
 			record,
+			copyStatus: currentStatus === 'returned' ? copyStatus : undefined,
 		});
 	};
 
@@ -122,12 +152,15 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 								<p className="text-sm text-gray-600">
 									Mã thẻ: {record.reader?.cardNumber || 'Không có mã thẻ'}
 								</p>
-								<div className="flex items-center gap-2 mt-2">
-									<AlertTriangle className="h-4 w-4 text-red-600" />
-									<span className="text-sm font-medium text-red-600">
-										Quá hạn {daysOverdue} ngày
-									</span>
-								</div>
+								{/* Chỉ hiển thị "Quá hạn ... ngày" khi không ở tab "đã trả" */}
+								{currentStatus !== 'returned' && (
+									<div className="flex items-center gap-2 mt-2">
+										<AlertTriangle className="h-4 w-4 text-red-600" />
+										<span className="text-sm font-medium text-red-600">
+											Quá hạn {daysOverdue} ngày
+										</span>
+									</div>
+								)}
 								{/* <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
 									<p className="text-sm text-orange-800">
 										<strong>Số tiền phạt:</strong>{' '}
@@ -156,8 +189,32 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 							/>
 						</div>
 
+						{/* Chỉ hiển thị select copy status khi ở tab "đã trả" */}
+						{currentStatus === 'returned' && (
+							<div className="space-y-2">
+								<Label htmlFor="copyStatus">Trạng thái bản sách</Label>
+								<Select value={copyStatus} onValueChange={setCopyStatus}>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Chọn trạng thái bản sách" />
+									</SelectTrigger>
+									<SelectContent className="max-h-[200px] overflow-y-auto">
+										{copyStatusOptions.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
+
 						<div className="space-y-2">
-							<Label htmlFor="reason">Lý do phạt</Label>
+							<Label htmlFor="reason">
+								Lý do phạt
+								{currentStatus === 'returned' && (
+									<span className="text-red-500 ml-1">*</span>
+								)}
+							</Label>
 							<Textarea
 								id="reason"
 								value={reason}
@@ -174,11 +231,17 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 							<AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5" />
 							<div className="text-sm text-orange-800">
 								<p className="font-medium">Lưu ý:</p>
-								<p>Khi xác nhận, hệ thống sẽ:</p>
-								<ul className="list-disc list-inside mt-1 space-y-1">
-									<li>Tạo phiếu phạt cho độc giả</li>
-									<li>Cập nhật trạng thái mượn sách thành "Quá hạn"</li>
-								</ul>
+								{currentStatus === 'returned' ? (
+									<p>Khi xác nhận, hệ thống sẽ tạo phiếu phạt cho độc giả.</p>
+								) : (
+									<>
+										<p>Khi xác nhận, hệ thống sẽ:</p>
+										<ul className="list-disc list-inside mt-1 space-y-1">
+											<li>Tạo phiếu phạt cho độc giả</li>
+											<li>Cập nhật trạng thái mượn sách thành "Quá hạn"</li>
+										</ul>
+									</>
+								)}
 							</div>
 						</div>
 					</div>
@@ -194,7 +257,11 @@ export const CreateFineDialog: React.FC<CreateFineDialogProps> = ({
 					</Button> */}
 					<Button
 						onClick={handleSubmit}
-						disabled={isLoading || !reason.trim()}
+						disabled={
+							isLoading ||
+							!reason.trim() ||
+							(currentStatus === 'returned' && !copyStatus)
+						}
 						className="bg-orange-600 hover:bg-orange-700"
 					>
 						{isLoading ? 'Đang xử lý...' : 'Tạo phiếu phạt'}

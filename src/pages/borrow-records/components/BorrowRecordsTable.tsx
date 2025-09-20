@@ -1,13 +1,4 @@
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '@/components/ui/table';
-import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
-import {
 	AlertTriangle,
 	Bell,
 	BookOpen,
@@ -18,11 +9,20 @@ import {
 	Receipt,
 	ThumbsUp,
 } from 'lucide-react';
+import type { BorrowRecord, BorrowStatus } from '@/types/borrow-records';
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table';
 import { useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { BorrowRecordDetailsDialog } from './BorrowRecordDetailsDialog';
+import { Button } from '@/components/ui/button';
 import { CreateFineDialog } from './CreateFineDialog';
 
 interface BorrowRecordsTableProps {
@@ -41,6 +41,7 @@ interface BorrowRecordsTableProps {
 		amount: number;
 		reason: string;
 		record: any;
+		copyStatus?: string;
 	}) => void;
 	isApproving: boolean;
 	isReturning: boolean;
@@ -215,6 +216,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 		amount: number;
 		reason: string;
 		record: any;
+		copyStatus?: string;
 	}) => {
 		onCreateFineAndUpdateOverdue(data);
 		setCreateFineDialogOpen(false);
@@ -519,6 +521,23 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 								</Button>
 							</>
 						)}
+
+						{/* Actions for returned books - Create Fine button */}
+						{record.status === 'returned' && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									setSelectedFineRecord(record);
+									setCreateFineDialogOpen(true);
+								}}
+								title="Tạo phiếu phạt"
+								className="text-orange-600 hover:text-orange-700"
+								disabled={isCreatingFine}
+							>
+								<Receipt className="w-4 h-4" />
+							</Button>
+						)}
 					</div>
 				</TableCell>
 			</TableRow>
@@ -583,6 +602,7 @@ export const BorrowRecordsTable: React.FC<BorrowRecordsTableProps> = ({
 				record={selectedFineRecord}
 				onConfirm={handleCreateFineAndUpdateOverdue}
 				isLoading={isCreatingFine}
+				currentStatus={currentStatus}
 			/>
 		</>
 	);

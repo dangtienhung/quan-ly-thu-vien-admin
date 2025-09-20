@@ -1,4 +1,17 @@
 import {
+	BorrowRecordsTabs,
+	ExportConfirmDialog,
+	PageHeader,
+	RecordDetailsDialog,
+	SearchBar,
+} from './components';
+import type { CreateFineRequest, FineType } from '@/types/fines';
+import {
+	createSearchParams,
+	useNavigate,
+	useSearchParams,
+} from 'react-router-dom';
+import {
 	useApproveBorrowRecord,
 	useBorrowRecordsByStatus,
 	useBorrowRecordsStats,
@@ -9,36 +22,24 @@ import {
 	useReturnBook,
 	useSendReminders,
 } from '@/hooks/borrow-records';
-import type { CreateFineRequest, FineType } from '@/types/fines';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-	createSearchParams,
-	useNavigate,
-	useSearchParams,
-} from 'react-router-dom';
-import {
-	BorrowRecordsTabs,
-	ExportConfirmDialog,
-	PageHeader,
-	RecordDetailsDialog,
-	SearchBar,
-} from './components';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { BorrowRecordsAPI } from '@/apis/borrow-records';
-import { Button } from '@/components/ui/button';
-import { useExportBorrowRecords } from '@/hooks/borrow-records/use-export-borrow-records';
-import { useCreateFine } from '@/hooks/fines/use-create-fine';
-import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
-import type { BorrowStatus } from '@/types/borrow-records';
-import { FileText } from 'lucide-react';
-import { toast } from 'sonner';
 import { ApproveRejectDialog } from './components/approve-reject-dialog';
+import { BorrowRecordsAPI } from '@/apis/borrow-records';
+import type { BorrowStatus } from '@/types/borrow-records';
+import { Button } from '@/components/ui/button';
 import { CreateBorrowRecordDialog } from './components/create-borrow-record-dialog';
 import { DeleteConfirmDialog } from './components/delete-confirm-dialog';
+import { FileText } from 'lucide-react';
+import { PhysicalCopiesAPI } from '@/apis/physical-copies';
 import { RenewBookDialog } from './components/renew-book-dialog';
 import { ReturnBookDialog } from './components/return-book-dialog';
 import { StatisticsCards } from './components/statistics-cards';
+import { toast } from 'sonner';
+import { useCreateFine } from '@/hooks/fines/use-create-fine';
+import { useExportBorrowRecords } from '@/hooks/borrow-records/use-export-borrow-records';
+import { useUpdatePhysicalCopyStatus } from '@/hooks/physical-copies';
 
 export default function BorrowRecordsPage() {
 	const navigate = useNavigate();
@@ -252,10 +253,11 @@ export default function BorrowRecordsPage() {
 	};
 
 	// Function to handle create fine and update overdue status
-	const handleCreateFineAndUpdateOverdue = (data: {
+	const handleCreateFineAndUpdateOverdue = async (data: {
 		amount: number;
 		reason: string;
 		record: any;
+		copyStatus?: string;
 	}) => {
 		const daysOverdue = calculateDaysOverdue(data.record.due_date);
 
@@ -272,43 +274,69 @@ export default function BorrowRecordsPage() {
 
 		// Tạo phiếu phạt trước
 		createFine(fineData, {
-			onSuccess: () => {
-				// Sau khi tạo phiếu phạt thành công, cập nhật trạng thái thành "đã trả"
-				returnBook(
-					{
-						id: data.record.id,
-						data: {
-							returnNotes: `Trả sách sau khi tạo phiếu phạt - ${data.reason}`,
-						},
-					},
-					{
-						onSuccess: async () => {
-							// Cập nhật trạng thái sách về "available"
-							const physicalCopyId = data.record.physicalCopy?.id;
-							if (physicalCopyId) {
-								try {
-									await updatePhysicalCopyStatusMutation.mutateAsync({
-										id: physicalCopyId,
-										data: {
-											status: 'available',
-											notes: 'Sách đã được trả và sẵn sàng cho mượn',
-										},
-									});
-								} catch (error) {
-									console.error('Error updating physical copy status:', error);
-								}
-							}
-							// Invalidate queries để refresh data
-							queryClient.invalidateQueries({ queryKey: ['fines'] });
-							invalidateAllQueries();
-							toast.success('Tạo phiếu phạt và trả sách thành công!');
-						},
-						onError: (error) => {
-							toast.error('Có lỗi khi cập nhật trạng thái trả sách');
-							console.error('Error updating return status:', error);
-						},
+			onSuccess: async () => {
+				// Nếu ở tab "returned" và có copyStatus, cập nhật trạng thái sách
+				if (status === 'returned' && data.copyStatus) {
+					const physicalCopyId = data.record.physicalCopy?.id;
+					if (physicalCopyId) {
+						try {
+							await PhysicalCopiesAPI.updateStatus(physicalCopyId, {
+								status: data.copyStatus as any,
+								notes: `Cập nhật trạng thái khi tạo phiếu phạt - ${data.reason}`,
+							});
+						} catch (error) {
+							console.error('Error updating physical copy status:', error);
+							toast.error('Có lỗi khi cập nhật trạng thái sách');
+						}
 					}
-				);
+				} else {
+					// Logic cũ cho các tab khác: cập nhật trạng thái thành "đã trả"
+					returnBook(
+						{
+							id: data.record.id,
+							data: {
+								returnNotes: `Trả sách sau khi tạo phiếu phạt - ${data.reason}`,
+							},
+						},
+						{
+							onSuccess: async () => {
+								// Cập nhật trạng thái sách về "available"
+								const physicalCopyId = data.record.physicalCopy?.id;
+								if (physicalCopyId) {
+									try {
+										await updatePhysicalCopyStatusMutation.mutateAsync({
+											id: physicalCopyId,
+											data: {
+												status: 'available',
+												notes: 'Sách đã được trả và sẵn sàng cho mượn',
+											},
+										});
+									} catch (error) {
+										console.error(
+											'Error updating physical copy status:',
+											error
+										);
+									}
+								}
+								// Invalidate queries để refresh data
+								queryClient.invalidateQueries({ queryKey: ['fines'] });
+								invalidateAllQueries();
+								toast.success('Tạo phiếu phạt và trả sách thành công!');
+							},
+							onError: (error) => {
+								toast.error('Có lỗi khi cập nhật trạng thái trả sách');
+								console.error('Error updating return status:', error);
+							},
+						}
+					);
+					return; // Thoát khỏi function để không chạy code bên dưới
+				}
+
+				// Invalidate queries để refresh data
+				queryClient.invalidateQueries({ queryKey: ['fines'] });
+				queryClient.invalidateQueries({ queryKey: ['physical-copies'] });
+				invalidateAllQueries();
+				toast.success('Tạo phiếu phạt thành công!');
 			},
 			onError: (error) => {
 				toast.error('Có lỗi khi tạo phiếu phạt');
